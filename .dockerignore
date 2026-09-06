@@ -1,0 +1,15 @@
+# Docker 构建时排除的文件（保持镜像精简、避免缓存污染）
+.git/
+.trae/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.zip
+*.rar
+*.7z
+*.xlsx
+*.docx
+*.pdf
+.vscode/
+.idea/

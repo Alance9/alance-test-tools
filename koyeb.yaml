@@ -1,0 +1,25 @@
+# Koyeb 部署配置（备选平台，免费 nano 实例、无需信用卡）
+# https://www.koyeb.com/docs/build-and-deploy/git-driven/configuration
+# 控制台 New Web Service 连接 GitHub 仓库后会自动读取本文件；
+# 也可手动填：Build `pip install -r requirements.txt`
+# Run `gunicorn --chdir platform --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 180 app:application`
+# Port 8000，Health check path /health
+name: alance-test-tools
+services:
+  - name: web
+    type: web
+    instance_type: nano          # 免费实例：512MB RAM
+    git:
+      branch: main
+    build:
+      buildCommand: pip install -r requirements.txt
+    run:
+      runCommand: gunicorn --chdir platform --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 180 app:application
+    ports:
+      - port: 8000
+        http:
+          path: /
+    healthChecks:
+      - http:
+          path: /health
+          port: 8000
