@@ -114,7 +114,7 @@ https://<用户名>.pythonanywhere.com
 | **更新代码** | Bash 中 `cd ~/alance-test-tools && git pull`（zip 方式则重新上传解压覆盖）→ Web 页 **Reload** |
 | **改了代码网页没生效** | 必须点 Reload；平台为子应用开启了模板自动重载，但 WSGI 进程级改动仍需 Reload |
 | **查看错误日志** | Web 标签页 → **error log** / **server log**，重点看 error log 最后 20 行 |
-| **3 个月到期提醒** | 免费 Web App 每 3 个月需登录控制台点一次续期（页面会提示），否则暂停 |
+| **3 个月到期提醒** | 免费 Web App 每 1 个月需登录控制台点一次续期（页面会提示），否则暂停 |
 | **Bash 会话过期** | Consoles 页重新开一个 Bash 即可，文件不会丢 |
 
 ---
