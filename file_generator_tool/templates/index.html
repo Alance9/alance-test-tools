@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试文件生成工具</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif; background: #fff; min-height: 100vh; padding: 30px 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { text-align: center; color: #222; margin-bottom: 40px; }
+        .header h1 { font-size: 2.625rem; margin-bottom: 12px; font-weight: 600; letter-spacing: 1px; }
+        .header p { font-size: 1.125rem; color: #666; }
+        .card { background: #fff; border-radius: 6px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); overflow: hidden; border: 1px solid #ddd; margin-bottom: 30px; }
+        .tabs { display: flex; background: #fff; border-bottom: 1px solid #e0e0e0; flex-wrap: wrap; padding-left: 30px; }
+        .tab { padding: 14px 22px; cursor: pointer; font-weight: 500; color: #444; border-bottom: 2px solid transparent; transition: all 0.2s; font-size: 1rem; }
+        .tab:hover { background: #f8fcff; color: #222; }
+        .tab.active { color: #333; border-bottom-color: #666; background: #fff; }
+        .tab-content { padding: 30px; display: none; }
+        .tab-content.active { display: block; }
+        .card-title { font-size: 1.375rem; font-weight: 600; margin-bottom: 22px; color: #333; padding-bottom: 10px; border-bottom: 2px solid #ccc; }
+        .btn { background: #444; color: #fff; border: none; padding: 12px 28px; border-radius: 4px; cursor: pointer; font-weight: 500; transition: all 0.2s; font-size: 1rem; }
+        .btn:hover { background: #333; }
+        .btn-secondary { background: #f5f5f5; color: #555; border: 1px solid #ddd; }
+        .btn-group { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; color: #444; font-size: 1rem; }
+        .form-group input, .form-group select { width: 100%; padding: 12px 14px; border: 2px solid #ccc; border-radius: 4px; font-size: 16px; background: #fff; color: #222; font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif; }
+        .form-group select {
+            appearance: none; -webkit-appearance: none; -moz-appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat; background-position: right 14px center; background-size: 16px;
+            padding-right: 40px;
+        }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: #666; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .preview { text-align: center; margin-top: 16px; }
+        .preview img { max-width: 400px; border: 1px solid #ddd; border-radius: 4px; }
+        pre.code-box { background: #f8f8f8; border: 1px solid #ddd; border-radius: 4px; padding: 16px; overflow-x: auto; font-family: 'Consolas', 'Courier New', monospace; font-size: 14px; line-height: 1.6; color: #333; max-height: 500px; overflow-y: auto; white-space: pre; margin-top: 12px; }
+        .toast { position: fixed; top: 20px; right: 20px; background: #444; color: white; padding: 12px 24px; border-radius: 4px; font-size: 14px; z-index: 9999; opacity: 0; transition: opacity 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .size-quick { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
+        .size-quick button { padding: 6px 14px; border: 1px solid #ccc; background: #fafafa; border-radius: 20px; cursor: pointer; font-size: 14px; color: #444; }
+        .size-quick button:hover { background: #eee; color: #222; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>测试文件生成工具</h1>
+            <p>图片 / 文件 / 配置文件 — 边界值测试专用</p>
+        </div>
+        <div class="card">
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('image')">图片生成</div>
+                <div class="tab" onclick="switchTab('file')">文件生成</div>
+                <div class="tab" onclick="switchTab('config')">配置文件示例</div>
+            </div>
+
+            <!-- 图片生成 -->
+            <div id="image" class="tab-content active">
+                <div class="card-title">生成指定大小的测试图片</div>
+                <div class="size-quick">
+                    <button onclick="setImgSize(1, 1)">1x1 极小</button>
+                    <button onclick="setImgSize(100, 100)">100x100</button>
+                    <button onclick="setImgSize(800, 600)">800x600</button>
+                    <button onclick="setImgSize(1920, 1080)">1920x1080</button>
+                    <button onclick="setImgSize(5000, 5000)">5000x5000</button>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group"><label>宽度 (px，最大 5000)</label><input type="number" id="imgW" value="800" min="1" max="5000"></div>
+                    <div class="form-group"><label>高度 (px，最大 5000)</label><input type="number" id="imgH" value="600" min="1" max="5000"></div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>格式</label>
+                        <select id="imgFmt">
+                            <option value="JPEG">JPEG</option>
+                            <option value="PNG">PNG</option>
+                            <option value="GIF">GIF</option>
+                            <option value="WEBP">WEBP</option>
+                            <option value="BMP">BMP</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>颜色</label>
+                        <select id="imgColor">
+                            <option value="random">随机彩色</option>
+                            <option value="255,0,0">红色</option>
+                            <option value="0,255,0">绿色</option>
+                            <option value="0,0,255">蓝色</option>
+                            <option value="255,255,255">白色</option>
+                            <option value="0,0,0">黑色</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn" onclick="genImage()">生成图片</button>
+                    <button class="btn btn-secondary" id="imgDownloadBtn" style="display:none;" onclick="downloadImage()">下载</button>
+                </div>
+                <div id="imgPreview" class="preview"></div>
+            </div>
+
+            <!-- 文件生成 -->
+            <div id="file" class="tab-content">
+                <div class="card-title">生成指定大小的测试文件</div>
+                <div class="size-quick">
+                    <button onclick="setFileSize(1)">1MB</button>
+                    <button onclick="setFileSize(10)">10MB</button>
+                    <button onclick="setFileSize(20)">20MB</button>
+                    <button onclick="setFileSize(50)">50MB</button>
+                    <button onclick="setFileSize(100)">100MB</button>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group"><label>大小 (MB，最大 100)</label><input type="number" id="fileSize" value="10" min="0.01" max="100" step="0.01"></div>
+                    <div class="form-group">
+                        <label>格式</label>
+                        <select id="fileFmt">
+                            <option value="xlsx">.xlsx</option>
+                            <option value="docx">.docx</option>
+                            <option value="pdf">.pdf</option>
+                            <option value="zip">.zip</option>
+                            <option value="7z">.7z</option>
+                            <option value="rar">.rar</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn" onclick="downloadFile()">生成并下载</button>
+            </div>
+
+            <!-- 配置文件 -->
+            <div id="config" class="tab-content">
+                <div class="card-title">配置文件示例</div>
+                <div class="form-group">
+                    <select id="cfgFmt" onchange="loadConfig()" style="max-width:400px;">
+                        <option value="json">JSON</option>
+                        <option value="yaml">YAML</option>
+                        <option value="ini">INI</option>
+                        <option value="xml">XML</option>
+                        <option value="sh">Shell</option>
+                        <option value="groovy">Groovy/Jmeter</option>
+                    </select>
+                </div>
+                <div class="btn-group">
+                    <button class="btn" onclick="copyConfig()">复制示例</button>
+                    <button class="btn btn-secondary" onclick="downloadConfig()">下载文件</button>
+                </div>
+                <pre class="code-box" id="cfgBox"></pre>
+            </div>
+        </div>
+    </div>
+    <script>
+        let currentImgB64 = null;
+        let currentImgFmt = null;
+
+        function switchTab(name) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector(`.tab[onclick="switchTab('${name}')"]`).classList.add('active');
+            document.getElementById(name).classList.add('active');
+            if (name === 'config') loadConfig();
+        }
+
+        function setImgSize(w, h) { document.getElementById('imgW').value = w; document.getElementById('imgH').value = h; }
+        function setFileSize(mb) { document.getElementById('fileSize').value = mb; }
+
+        async function genImage() {
+            let w = Math.min(5000, Math.max(1, +document.getElementById('imgW').value || 800));
+            let h = Math.min(5000, Math.max(1, +document.getElementById('imgH').value || 600));
+            document.getElementById('imgW').value = w;
+            document.getElementById('imgH').value = h;
+            const fmt = document.getElementById('imgFmt').value;
+            const color = document.getElementById('imgColor').value;
+
+            const r = await fetch('api/image/generate', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ width: w, height: h, format: fmt, color }) });
+            const data = await r.json();
+            if (data.success) {
+                currentImgB64 = data.image; currentImgFmt = data.format;
+                document.getElementById('imgPreview').innerHTML = `<img src="data:image/${data.format};base64,${data.image}"><div style="margin-top:8px;color:#666;font-size:0.875rem;">实际大小: ${data.actual_kb} KB</div>`;
+                document.getElementById('imgDownloadBtn').style.display = 'inline-block';
+            } else showToast(data.error || '生成失败');
+        }
+
+        function downloadImage() {
+            if (!currentImgB64) return;
+            const a = document.createElement('a');
+            a.href = `data:image/${currentImgFmt};base64,${currentImgB64}`;
+            a.download = `test_image_${document.getElementById('imgW').value}x${document.getElementById('imgH').value}.${currentImgFmt}`;
+            a.click();
+        }
+
+        async function downloadFile() {
+            let sizeMB = parseFloat(document.getElementById('fileSize').value);
+            if (!sizeMB || sizeMB <= 0) { showToast('请输入有效的文件大小'); return; }
+            if (sizeMB > 100) {
+                sizeMB = 100;
+                document.getElementById('fileSize').value = 100;
+                showToast('文件大小最大支持 100MB，已自动调整');
+            }
+            const fmt = document.getElementById('fileFmt').value;
+            const btn = event.target;
+            btn.disabled = true; btn.textContent = '生成中...';
+            try {
+                const r = await fetch('api/file/generate', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ size_mb: sizeMB, format: fmt }) });
+                if (!r.ok) {
+                    const err = await r.json().catch(() => ({}));
+                    showToast(err.error || '生成失败');
+                    return;
+                }
+                const blob = await r.blob();
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `test_file_${sizeMB}mb.${fmt}`;
+                a.click();
+                URL.revokeObjectURL(a.href);
+            } catch(e) {
+                showToast('生成失败: ' + e.message);
+            } finally {
+                btn.disabled = false; btn.textContent = '生成并下载';
+            }
+        }
+
+        async function loadConfig() {
+            const fmt = document.getElementById('cfgFmt').value;
+            const r = await fetch('api/config/example?format=' + fmt);
+            const data = await r.json();
+            if (data.success) document.getElementById('cfgBox').textContent = data.content;
+        }
+
+        function copyConfig() {
+            const el = document.getElementById('cfgBox');
+            if (!el) { showToast('无内容可复制'); return; }
+            const text = el.textContent;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => showToast('已复制')).catch(() => fallbackCopy(text));
+            } else { fallbackCopy(text); }
+        }
+        function fallbackCopy(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+            document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); showToast('已复制'); } catch(e) { showToast('复制失败'); }
+            document.body.removeChild(ta);
+        }
+
+        async function downloadConfig() {
+            const fmt = document.getElementById('cfgFmt').value;
+            const r = await fetch('api/config/download', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ format: fmt }) });
+            const blob = await r.blob();
+            const a = document.createElement('a');
+            const ext = fmt === 'groovy' ? 'groovy' : (fmt === 'sh' ? 'sh' : fmt);
+            a.href = URL.createObjectURL(blob);
+            a.download = `application.${ext}`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        function showToast(msg) {
+            let t = document.getElementById('toast');
+            if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; document.body.appendChild(t); }
+            t.textContent = msg; t.style.opacity = '1';
+            setTimeout(() => t.style.opacity = '0', 2000);
+        }
+    </script>
+</body>
+</html>

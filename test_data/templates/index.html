@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试数据生成器</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            padding: 30px 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { text-align: center; color: #222222; margin-bottom: 40px; }
+        .header h1 { font-size: 2.625rem; margin-bottom: 12px; font-weight: 600; letter-spacing: 1px; }
+        .header p { font-size: 1.125rem; color: #666666; letter-spacing: 0.5px; }
+        .card {
+            background: #ffffff;
+            border-radius: 6px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            border: 1px solid #dddddd;
+            margin-bottom: 30px;
+        }
+        /* Tab 栏 */
+        .tabs {
+            display: flex;
+            background: #ffffff;
+            border-bottom: 1px solid #e0e0e0;
+            flex-wrap: wrap;
+            padding-left: 30px;
+        }
+        .tab {
+            padding: 14px 22px;
+            cursor: pointer;
+            font-weight: 500;
+            color: #444444;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+        .tab:hover { background: #f8fcff; color: #222222; }
+        .tab.active { color: #333333; border-bottom-color: #666666; background: #ffffff; }
+        .tab-content { padding: 30px; display: none; }
+        .tab-content.active { display: block; }
+        .form-row { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+        .form-group { flex: 1; min-width: 200px; }
+        .form-group label {
+            display: block; margin-bottom: 8px; font-weight: 500; color: #444444; font-size: 1rem;
+        }
+        .form-group input, .form-group select {
+            width: 100%; padding: 12px 14px; border: 2px solid #cccccc; border-radius: 4px;
+            font-size: 16px; transition: all 0.2s; background: #ffffff; color: #222222;
+        }
+        .form-group select {
+            appearance: none; -webkit-appearance: none; -moz-appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat; background-position: right 14px center; background-size: 16px; padding-right: 40px;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none; border-color: #666666; box-shadow: 0 0 0 2px rgba(102, 102, 102, 0.1);
+        }
+        .btn {
+            background: #444444; color: #ffffff; border: none; padding: 12px 14px; border-radius: 4px;
+            cursor: pointer; font-weight: 500; letter-spacing: 0.5px; transition: all 0.2s; font-size: 1rem;
+            flex: 1; text-align: center;
+        }
+        .btn:hover { background: #333333; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); }
+        .btn-secondary { background: #f5f5f5; color: #555555; border: 1px solid #dddddd; }
+        .btn-secondary:hover { background: #eeeeee; color: #333333; box-shadow: none; }
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+        .field-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .field-tag {
+            background: #f5f5f5; color: #444444; padding: 4px 12px; border-radius: 20px;
+            font-size: 0.85rem; border: 1px solid #dddddd;
+        }
+        /* 卡片网格展示 */
+        .card-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr);
+            gap: 14px; padding: 20px;
+        }
+        .field-card {
+            border: 2px solid #cccccc; border-radius: 4px; padding: 14px 16px;
+            background: #ffffff; transition: all 0.2s;
+        }
+        .field-card:hover { border-color: #999; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        .field-card-label {
+            font-size: 0.85rem; color: #888; margin-bottom: 6px; font-weight: 500;
+        }
+        .field-card-value {
+            font-size: 1rem; color: #222; word-break: break-all; font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+        }
+        .field-card-actions { display: flex; gap: 6px; justify-content: flex-end; margin-top: 8px; }
+        .field-icon-btn {
+            width: 30px; height: 30px; border: 1px solid #ddd; background: #fafafa; border-radius: 4px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s; color: #555; font-size: 0.85rem;
+        }
+        .field-icon-btn:hover { background: #f0f0f0; border-color: #999; color: #333; }
+        .field-icon-btn svg { width: 16px; height: 16px; }
+        .loading { text-align: center; padding: 40px; color: #666666; }
+        .empty-state { text-align: center; padding: 60px; color: #999; }
+        .toast {
+            position: fixed; top: 20px; right: 20px; background: #444; color: white;
+            padding: 12px 24px; border-radius: 4px; font-size: 14px; z-index: 9999;
+            opacity: 0; transition: opacity 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        /* 随机文本专用样式 */
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 12px 28px; margin-bottom: 18px; }
+        .checkbox-group label {
+            display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 500; color: #444444; font-size: 1rem;
+            margin-bottom: 0;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: 18px; height: 18px; cursor: pointer; accent-color: #444444;
+        }
+        /* 随机文本输出框（参考文本处理工具样式） */
+        .rt-result {
+            position: relative;
+            border: 2px solid #cccccc; border-radius: 4px; padding: 14px 16px;
+            background: #ffffff; margin-top: 18px;
+            max-height: 300px; overflow-y: auto;
+        }
+        .rt-result-text {
+            font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+            font-size: 16px; color: #222222; white-space: pre-wrap; word-break: break-all; line-height: 1.7;
+        }
+        .rt-copy-btn {
+            position: absolute; top: 10px; right: 12px;
+            padding: 5px 14px; border: 1px solid #dddddd; background: #f5f5f5; color: #555555;
+            border-radius: 4px; cursor: pointer; font-size: 0.85rem;
+        }
+        .rt-copy-btn:hover { background: #eeeeee; color: #333333; }
+        .random-text-actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>测试数据生成器</h1>
+            <p>快速生成批量测试数据，支持多种格式导出</p>
+        </div>
+
+        <div class="card">
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('random_text')">随机文本</div>
+                <div class="tab" onclick="switchTab('basic')">基础信息</div>
+                <div class="tab" onclick="switchTab('network')">网络类</div>
+                <div class="tab" onclick="switchTab('account')">账号类</div>
+                <div class="tab" onclick="switchTab('enterprise')">企业类</div>
+                <div class="tab" onclick="switchTab('address')">地址类</div>
+                <div class="tab" onclick="switchTab('device')">设备类</div>
+                <div class="tab" onclick="switchTab('transaction')">交易类</div>
+                <div class="tab" onclick="switchTab('security')">安全类</div>
+                <div class="tab" onclick="switchTab('text')">文本类</div>
+                <div class="tab" onclick="switchTab('file')">文件类</div>
+            </div>
+
+            <div id="random_text" class="tab-content active">
+                <div class="form-row">
+                    <div class="form-group" style="flex: 0.5;">
+                        <label>每行长度</label>
+                        <input type="number" id="rt_length" value="20" min="1" max="500">
+                    </div>
+                    <div class="form-group" style="flex: 0.5;">
+                        <label>行数</label>
+                        <input type="number" id="rt_lines" value="5" min="1" max="500">
+                    </div>
+                </div>
+                <div class="checkbox-group" id="rt_checkboxes"></div>
+                <div class="random-text-actions">
+                    <button class="btn" onclick="generateRandomText()">生成文本</button>
+                    <button class="btn btn-secondary" onclick="copyRandomText()">复制结果</button>
+                </div>
+            </div>
+
+            <div id="basic" class="tab-content"></div>
+            <div id="network" class="tab-content"></div>
+            <div id="account" class="tab-content"></div>
+            <div id="enterprise" class="tab-content"></div>
+            <div id="address" class="tab-content"></div>
+            <div id="device" class="tab-content"></div>
+            <div id="transaction" class="tab-content"></div>
+            <div id="security" class="tab-content"></div>
+            <div id="text" class="tab-content"></div>
+            <div id="file" class="tab-content"></div>
+        </div>
+
+        <div class="card" style="padding: 20px 0;">
+            <div style="display:flex; justify-content:flex-end; padding: 0 30px 12px 30px;">
+                <button class="field-icon-btn" id="refreshTopBtn" title="刷新当前分类" onclick="refreshCurrent()" style="width:36px;height:36px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                    </svg>
+                </button>
+            </div>
+            <div id="dataContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentDataType = 'random_text';
+        let currentFields = [];
+        let randomTextOptions = ['数字', '英文字母', '简体中文', '繁体中文', '英文符号', '中文符号', '生僻字', '乱码'];
+
+        /**
+         * 初始化随机文本的复选框
+         */
+        function initRandomTextCheckboxes() {
+            const container = document.getElementById('rt_checkboxes');
+            container.innerHTML = randomTextOptions.map((opt, i) => `
+                <label>
+                    <input type="checkbox" value="${opt}" ${i < 3 ? 'checked' : ''}> ${opt}
+                </label>
+            `).join('');
+        }
+
+        /**
+         * 获取随机文本选中的选项
+         */
+        function getRandomTextOptions() {
+            const checkboxes = document.querySelectorAll('#rt_checkboxes input[type="checkbox"]:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        /**
+         * 生成随机文本
+         */
+        async function generateRandomText() {
+            const options = getRandomTextOptions();
+            const length = parseInt(document.getElementById('rt_length').value) || 20;
+            const lines = parseInt(document.getElementById('rt_lines').value) || 5;
+            if (options.length === 0) { showToast('请至少选择一种字符类型'); return; }
+
+            const container = document.getElementById('dataContainer');
+            container.innerHTML = `<div style="padding: 0 20px 20px;"><div class="rt-result"><div class="rt-result-text" style="color:#999;">正在生成...</div></div></div>`;
+
+            try {
+                const response = await fetch('api/generate/random_text', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ options, length: length * lines, line_wrap: length }),
+                });
+                const result = await response.json();
+                if (result.success) {
+                    // 输出框渲染在下方卡片内（刷新按钮下方）
+                    container.innerHTML = `
+                        <div style="padding: 0 20px 20px;">
+                            <div class="rt-result">
+                                <button class="rt-copy-btn" onclick="copyRandomText()">复制</button>
+                                <div class="rt-result-text" id="randomTextResult">${escapeHtml(result.text)}</div>
+                            </div>
+                        </div>
+                    `;
+                    showToast('已刷新');
+                } else {
+                    container.innerHTML = `<div style="padding: 0 20px 20px;"><div class="rt-result"><div class="rt-result-text" style="color:#cc0000;">${escapeHtml(result.error || '生成失败')}</div></div></div>`;
+                }
+            } catch (error) {
+                container.innerHTML = `<div style="padding: 0 20px 20px;"><div class="rt-result"><div class="rt-result-text" style="color:#cc0000;">生成失败</div></div></div>`;
+            }
+        }
+
+        /**
+         * 复制随机文本结果
+         */
+        function copyRandomText() {
+            const el = document.getElementById('randomTextResult');
+            if (el) copyText(el.textContent);
+            else showToast('请先生成文本');
+        }
+
+        /**
+         * 刷新当前分类
+         */
+        function refreshCurrent() {
+            if (currentDataType === 'random_text') generateRandomText();
+            else generateData(currentDataType);
+        }
+
+        /**
+         * 切换 Tab
+         */
+        function switchTab(tabName) {
+            currentDataType = tabName;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            if (tabName === 'random_text') {
+                initRandomTextCheckboxes();
+                generateRandomText();
+            } else {
+                loadCategoryForm(tabName);
+                generateData(tabName);
+            }
+        }
+
+        /**
+         * 加载分类表单
+         */
+        async function loadCategoryForm(category) {
+            const container = document.getElementById(category);
+            if (container.children.length > 0) return;
+
+            try {
+                const response = await fetch('api/categories');
+                const result = await response.json();
+                const info = result.categories.find(c => c.key === category);
+                if (!info) return;
+
+                container.innerHTML = `
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 0.4;">
+                            <label>生成数量</label>
+                            <input type="number" id="count_${category}" value="10" min="1" max="10000">
+                        </div>
+                        <div class="form-group" style="flex: 1.6;">
+                            <label>批量操作</label>
+                            <div class="btn-group">
+                                <button class="btn" onclick="downloadCSV('${category}')">导出CSV</button>
+                                <button class="btn btn-secondary" onclick="downloadJSON('${category}')">导出JSON</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field-tags">${info.fields.map(f => `<span class="field-tag">${f}</span>`).join('')}</div>
+                `;
+            } catch (error) {
+                console.error('加载分类失败:', error);
+            }
+        }
+
+        /**
+         * 生成随机数据（固定1条，卡片网格展示）
+         */
+        async function generateData(category) {
+            const container = document.getElementById('dataContainer');
+            container.innerHTML = `<div class="loading">正在生成数据...</div>`;
+
+            try {
+                const response = await fetch('api/generate', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data_type: category, count: 1 }),
+                });
+                const result = await response.json();
+                if (result.success) {
+                    currentFields = result.fields;
+                    renderCardGrid(result.data[0], result.fields);
+                    showToast('已刷新');
+                } else {
+                    showToast(result.error);
+                    container.innerHTML = '<div class="empty-state"><p>生成失败，请重试</p></div>';
+                }
+            } catch (error) {
+                console.error('生成数据失败:', error);
+                container.innerHTML = '<div class="empty-state"><p>生成失败，请检查网络连接</p></div>';
+            }
+        }
+
+        /**
+         * HTML 转义函数，防止 XSS 执行
+         */
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str).replace(/[&<>"']/g, function(c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
+        }
+
+        /**
+         * 渲染卡片网格
+         */
+        function renderCardGrid(row, fields) {
+            const container = document.getElementById('dataContainer');
+            const cards = fields.map(field => `
+                <div class="field-card">
+                    <div class="field-card-label">${escapeHtml(field)}</div>
+                    <div class="field-card-value" id="val_${escapeHtml(field)}">${escapeHtml(row[field])}</div>
+                    <div class="field-card-actions">
+                        <button class="field-icon-btn" title="刷新" onclick="refreshField('${escapeHtml(field)}')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                            </svg>
+                        </button>
+                        <button class="field-icon-btn" title="复制" onclick="copyField('${escapeHtml(field)}')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            container.innerHTML = `<div class="card-grid">${cards}</div>`;
+        }
+
+        /**
+         * 刷新单个字段值
+         */
+        async function refreshField(field) {
+            try {
+                const response = await fetch('api/generate/single', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data_type: currentDataType, field: field }),
+                });
+                const result = await response.json();
+                if (result.success) {
+                    const valEl = document.getElementById('val_' + field);
+                    if (valEl) valEl.textContent = result.value;
+                } else {
+                    showToast(result.error || '刷新失败');
+                }
+            } catch (error) {
+                showToast('刷新失败');
+            }
+        }
+
+        /**
+         * 复制单个字段值
+         */
+        function copyField(field) {
+            const valEl = document.getElementById('val_' + field);
+            if (valEl) copyText(valEl.textContent);
+        }
+
+        /**
+         * 复制文本（兼容性处理）
+         */
+        function copyText(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => showToast('已复制')).catch(() => fallbackCopy(text));
+            } else {
+                fallbackCopy(text);
+            }
+        }
+
+        /**
+         * 回退复制方案
+         */
+        function fallbackCopy(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); showToast('已复制'); } catch (e) { showToast('复制失败'); }
+            document.body.removeChild(ta);
+        }
+
+        /**
+         * 导出CSV（使用数量输入框的值）
+         */
+        async function downloadCSV(category) {
+            const count = parseInt(document.getElementById('count_' + category).value);
+            if (isNaN(count) || count < 1 || count > 10000) { showToast('请输入1-10000之间的数量'); return; }
+            try {
+                const response = await fetch('api/download/csv', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data_type: category, count: count }),
+                });
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = `${category}_data.csv`;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                window.URL.revokeObjectURL(url); showToast('CSV导出成功');
+            } catch (error) { showToast('下载失败，请重试'); }
+        }
+
+        /**
+         * 导出JSON（使用数量输入框的值）
+         */
+        async function downloadJSON(category) {
+            const count = parseInt(document.getElementById('count_' + category).value);
+            if (isNaN(count) || count < 1 || count > 10000) { showToast('请输入1-10000之间的数量'); return; }
+            try {
+                const response = await fetch('api/download/json', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data_type: category, count: count }),
+                });
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = `${category}_data.json`;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                window.URL.revokeObjectURL(url); showToast('JSON导出成功');
+            } catch (error) { showToast('下载失败，请重试'); }
+        }
+
+        /**
+         * 显示Toast提示
+         */
+        function showToast(message) {
+            let toast = document.getElementById('toast');
+            if (!toast) {
+                toast = document.createElement('div'); toast.id = 'toast'; toast.className = 'toast';
+                document.body.appendChild(toast);
+            }
+            toast.textContent = message; toast.style.opacity = '1';
+            setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+        }
+
+        // 初始化
+        initRandomTextCheckboxes();
+        generateRandomText();
+    </script>
+</body>
+</html>

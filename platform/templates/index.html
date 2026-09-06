@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alance 测试工具平台</title>
+    <style>
+        /* ===== 全局 ===== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+            background: #f0f0f0;
+            color: #222;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ===== 顶部 header ===== */
+        .header {
+            height: 60px;
+            flex-shrink: 0;
+            background: #2b2b2b;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 28px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            z-index: 10;
+        }
+        .header .logo {
+            width: 30px;
+            height: 30px;
+            border: 2px solid #fff;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 15px;
+            margin-right: 14px;
+            letter-spacing: 0;
+        }
+        .header h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        .header .sub {
+            margin-left: 16px;
+            font-size: 0.8125rem;
+            color: #aaa;
+            font-weight: 400;
+        }
+
+        /* ===== 邀请码门禁 ===== */
+        .gate {
+            position: fixed;
+            inset: 0;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        .gate.hidden { display: none; }
+        .gate-card {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 40px 44px;
+            width: 360px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        .gate-card .gate-logo {
+            width: 52px;
+            height: 52px;
+            border: 2px solid #444;
+            border-radius: 10px;
+            margin: 0 auto 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: #444;
+        }
+        .gate-card h2 {
+            font-size: 1.125rem;
+            color: #333;
+            margin-bottom: 6px;
+        }
+        .gate-card p {
+            font-size: 0.875rem;
+            color: #999;
+            margin-bottom: 22px;
+        }
+        .gate-card input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+            text-align: center;
+            letter-spacing: 2px;
+            margin-bottom: 14px;
+        }
+        .gate-card input:focus {
+            outline: none;
+            border-color: #666;
+        }
+        .gate-card .btn {
+            width: 100%;
+            background: #444;
+            color: #fff;
+            border: none;
+            padding: 12px 0;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            letter-spacing: 2px;
+        }
+        .gate-card .btn:hover { background: #333; }
+        .gate-error {
+            color: #c62828;
+            font-size: 0.8125rem;
+            min-height: 18px;
+            margin-top: 10px;
+        }
+
+        /* ===== 主体：左菜单 + 右内容 ===== */
+        .main {
+            flex: 1;
+            display: flex;
+            min-height: 0;
+        }
+
+        /* ===== 左侧菜单 ===== */
+        .sidebar {
+            width: 230px;
+            flex-shrink: 0;
+            background: #fafafa;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto;
+            padding: 14px 0;
+        }
+        .sidebar .group-title {
+            text-align: center;
+            padding: 10px 24px 14px;
+            font-size: 0.75rem;
+            color: #999;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 13px 24px;
+            font-size: 0.9375rem;
+            color: #444;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: background 0.15s, color 0.15s;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .menu-item:hover {
+            background: #efefef;
+            color: #111;
+        }
+        .menu-item.active {
+            background: #444;
+            color: #fff;
+            border-left-color: #999;
+            font-weight: 500;
+        }
+        .menu-item .idx {
+            width: 22px;
+            color: #aaa;
+            font-size: 0.8125rem;
+            flex-shrink: 0;
+        }
+        .menu-item.active .idx { color: #ccc; }
+
+        /* ===== 右侧功能区 ===== */
+        .content {
+            flex: 1;
+            min-width: 0;
+            background: #fff;
+        }
+        .content iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部标题栏 -->
+    <div class="header">
+        <div class="logo">A</div>
+        <h1>Alance 测试工具平台</h1>
+        <span class="sub">Test Tools Platform</span>
+    </div>
+
+    <!-- 主体区域 -->
+    <div class="main">
+        <!-- 左侧 Tab 菜单 -->
+        <div class="sidebar">
+            <div class="group-title">Tools List</div>
+            {% for item in menu %}
+            <div class="menu-item{% if loop.first %} active{% endif %}"
+                 data-key="{{ item.key }}"
+                 onclick="switchTool('{{ item.key }}', this)">
+                <span class="idx">{{ '%02d'|format(loop.index) }}</span>
+                <span>{{ item.name }}</span>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- 右侧功能页面（iframe 隔离各工具的 JS/CSS 命名空间） -->
+        <div class="content">
+            <iframe id="toolFrame" src="about:blank" title="功能区"></iframe>
+        </div>
+    </div>
+
+    <!-- 邀请码门禁 -->
+    <div class="gate" id="gate">
+        <div class="gate-card">
+            <div class="gate-logo">A</div>
+            <h2>Alance 测试工具平台</h2>
+            <p>请输入邀请码访问</p>
+            <input type="password" id="inviteCode" placeholder="邀请码" autocomplete="off"
+                   onkeydown="if(event.key==='Enter') checkInvite()">
+            <button class="btn" onclick="checkInvite()">进 入</button>
+            <div class="gate-error" id="gateError"></div>
+        </div>
+    </div>
+
+    <script>
+        /** 邀请码（本会话通过后记住，关闭标签页后失效） */
+        const INVITE_CODE = 'alan';
+        const STORAGE_KEY = 'alance_invite_passed';
+
+        /**
+         * 校验邀请码：通过则隐藏门禁并加载默认工具
+         */
+        function checkInvite() {
+            const input = document.getElementById('inviteCode');
+            const err = document.getElementById('gateError');
+            if (input.value.trim() === INVITE_CODE) {
+                sessionStorage.setItem(STORAGE_KEY, '1');
+                err.textContent = '';
+                document.getElementById('gate').classList.add('hidden');
+                document.getElementById('toolFrame').src = '/t/{{ menu[0].key }}/';
+            } else {
+                err.textContent = '邀请码错误，请重新输入';
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        // 页面加载时：本会话已验证过则直接进入
+        if (sessionStorage.getItem(STORAGE_KEY) === '1') {
+            document.getElementById('gate').classList.add('hidden');
+            document.getElementById('toolFrame').src = '/t/{{ menu[0].key }}/';
+        } else {
+            window.addEventListener('load', () => document.getElementById('inviteCode').focus());
+        }
+
+        /**
+         * 切换左侧菜单：更新选中态并加载对应工具页面
+         * @param {string} key - 工具挂载 key
+         * @param {HTMLElement} el - 被点击的菜单项
+         */
+        function switchTool(key, el) {
+            if (sessionStorage.getItem(STORAGE_KEY) !== '1') return;
+            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('toolFrame').src = '/t/' + key + '/';
+        }
+    </script>
+</body>
+</html>

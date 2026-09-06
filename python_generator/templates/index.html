@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python造数工具</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif; background: #fff; min-height: 100vh; padding: 30px 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { text-align: center; color: #222; margin-bottom: 40px; }
+        .header h1 { font-size: 2.625rem; margin-bottom: 12px; font-weight: 600; letter-spacing: 1px; }
+        .header p { font-size: 1.125rem; color: #666; }
+        .card { background: #fff; border-radius: 6px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); overflow: hidden; border: 1px solid #ddd; margin-bottom: 30px; }
+        .tabs { display: flex; background: #fff; border-bottom: 1px solid #e0e0e0; flex-wrap: wrap; padding-left: 30px; }
+        .tab { padding: 14px 22px; cursor: pointer; font-weight: 500; color: #444; border-bottom: 2px solid transparent; transition: all 0.2s; font-size: 1rem; }
+        .tab:hover { background: #f8fcff; color: #222; }
+        .tab.active { color: #333; border-bottom-color: #666; background: #fff; }
+        .tab-content { padding: 30px; display: none; }
+        .tab-content.active { display: block; }
+        .btn { background: #444; color: #fff; border: none; padding: 12px 28px; border-radius: 4px; cursor: pointer; font-weight: 500; transition: all 0.2s; font-size: 1rem; }
+        .btn:hover { background: #333; }
+        .btn-secondary { background: #f5f5f5; color: #555; border: 1px solid #ddd; }
+        .btn-group { display: flex; gap: 10px; margin-bottom: 16px; }
+        pre.code-box { background: #f8f8f8; border: 1px solid #ddd; border-radius: 4px; padding: 16px; overflow-x: auto; font-family: 'Consolas', 'Courier New', monospace; font-size: 14px; line-height: 1.6; color: #333; max-height: 650px; overflow-y: auto; white-space: pre; }
+        .toast { position: fixed; top: 20px; right: 20px; background: #444; color: white; padding: 12px 24px; border-radius: 4px; font-size: 14px; z-index: 9999; opacity: 0; transition: opacity 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Python造数工具</h1>
+            <p>Python 连接数据库造数 / 正则表达式使用示例</p>
+        </div>
+        <div class="card">
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('mysql')">SQL造数</div>
+                <div class="tab" onclick="switchTab('oracle')">Oracle造数</div>
+                <div class="tab" onclick="switchTab('gauss')">Gauss造数</div>
+                <div class="tab" onclick="switchTab('regex')">正则表达式</div>
+            </div>
+            <div class="tab-content active" id="content_mysql"></div>
+            <div class="tab-content" id="content_oracle"></div>
+            <div class="tab-content" id="content_gauss"></div>
+            <div class="tab-content" id="content_regex"></div>
+        </div>
+    </div>
+    <script>
+        const examples = {};
+        function switchTab(name) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector(`.tab[onclick="switchTab('${name}')"]`).classList.add('active');
+            document.getElementById('content_' + name).classList.add('active');
+            loadExample(name);
+        }
+        async function loadExample(type) {
+            if (examples[type]) { render(type, examples[type]); return; }
+            const r = await fetch('api/example?type=' + type);
+            const data = await r.json();
+            if (data.success) { examples[type] = data.code; render(type, data.code); }
+        }
+        function render(type, code) {
+            let topContent = '';
+            if (type === 'regex') {
+                topContent = `
+                <div class="regex-doc" style="margin-bottom:18px;">
+                    <h3 style="font-size:1.05rem;margin-bottom:10px;color:#333;">正则表达式符号用法速查</h3>
+                    <table style="width:100%;border-collapse:collapse;font-size:0.9375rem;">
+                        <thead>
+                            <tr style="background:#f5f5f5;">
+                                <th style="border:1px solid #ccc;padding:8px 12px;text-align:left;">符号</th>
+                                <th style="border:1px solid #ccc;padding:8px 12px;text-align:left;">说明</th>
+                                <th style="border:1px solid #ccc;padding:8px 12px;text-align:left;">示例</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td style="border:1px solid #ccc;padding:6px 12px;"><code>.</code></td><td style="border:1px solid #ccc;padding:6px 12px;">匹配任意单字符（除换行）</td><td style="border:1px solid #ccc;padding:6px 12px;"><code>a.c → abc</code></td></tr>
+                            <tr><td style="border:1px solid #ccc;padding:6px 12px;"><code>^</code></td><td style="border:1px solid #ccc;padding:6px 12px;">匹配行首</td><td style="border:1px solid #ccc;padding:6px 12px;"><code>^abc</code></td></tr>
+                            <tr><td style="border:1px solid #ccc;padding:6px 12px;"><code>$</code></td><td style="border:1px solid #ccc;padding:6px 12px;">匹配行尾</td><td style="border:1px solid #ccc;padding:6px 12px;"><code>abc$</code></td></tr>
+                            <tr><td style="border:1px solid #ccc;padding:6px 12px;"><code>*</code></td><td style="border:1px solid #ccc;padding:6px 12px;">0 次或多次</td><td style="border:1px solid #ccc;padding:6px 12px;"><code>ab*c → ac, abc, abbc</code></td></tr>
+                            <tr><td style="border:1px solid #ccc;padding:6px 12px;"><code>+</code></td><td style="border:1px solid #ccc;padding:6px 12px;">1 次或多次</td><td style="border:1px solid #ccc;padding:6px 12px;"><code>ab+c → abc, abbc</code></td></tr>
+                            <tr><td style="border:1px solid #ccc;padding:6px 12px;"><code>?</code></td><td style="border:1px solid #ccc;padding:6px 12px;">0 次或 1 次</td><td style="border:1px solid #ccc;padding:6px 12px;"><code>colou?r → color, colour</code></td></tr>
+                            <tr><td style="border:1px solid #ccc;padding:6px 12px;"><code>{n,m}</code></td><td style="border:1px solid #ccc;padding:6px 12px;">n 到 m 次</td><td style="border:1px solid #ccc;padding:6px 12px;"><code>a{2,4} → aa, aaa, aaaa</code></td></tr>
+                            <tr><td style="border:1px solid #ccc;padding:6px 12px;"><code>\\d</code></td><td style="border:1px solid #ccc;padding:6px 12px;">数字 [0-9]</td><td style="border:1px solid #ccc;padding:6px 12px;"><code>\\d+ → 123</code></td></tr>
+                            <tr><td style="border:1px solid #ccc;padding:6px 12px;"><code>\\D</code></td><td style="border:1px solid #ccc;padding:6px 12px;">非数字</td><td style="border:1px solid #ccc;padding:6px 12px;"><code>\\D+ → abc</code></td></tr>
+                            <tr><td style="border:1px solid #ccc;padding:6px 12px;"><code>\\w</code></td><td style="border:1px solid #ccc;padding:6px 12px;">字母/数字/下划线</td><td style="border:1px solid #ccc;padding:6px 12px;"><code>\\w+ → user_01</code></td></tr>
+                            <tr><td style="border:1px solid #ccc;padding:6px 12px;"><code>\\s</code></td><td style="border:1px solid #ccc;padding:6px 12px;">空白字符（空格/制表符/换行）</td><td style="border:1px solid #ccc;padding:6px 12px;"><code>a\\sb → a b</code></td></tr>
+                            <tr><td style="border:1px solid #ccc;padding:6px 12px;"><code>[abc]</code></td><td style="border:1px solid #ccc;padding:6px 12px;">字符集，匹配其中任一字符</td><td style="border:1px solid #ccc;padding:6px 12px;"><code>[0-9] → 匹配数字</code></td></tr>
+                            <tr><td style="border:1px solid #ccc;padding:6px 12px;"><code>[^abc]</code></td><td style="border:1px solid #ccc;padding:6px 12px;">反向字符集</td><td style="border:1px solid #ccc;padding:6px 12px;"><code>[^0-9] → 非数字</code></td></tr>
+                            <tr><td style="border:1px solid #ccc;padding:6px 12px;"><code>(abc)</code></td><td style="border:1px solid #ccc;padding:6px 12px;">分组捕获</td><td style="border:1px solid #ccc;padding:6px 12px;"><code>(\\d+)-\\1 → 123-123</code></td></tr>
+                            <tr><td style="border:1px solid #ccc;padding:6px 12px;"><code>a|b</code></td><td style="border:1px solid #ccc;padding:6px 12px;">或</td><td style="border:1px solid #ccc;padding:6px 12px;"><code>cat|dog → cat 或 dog</code></td></tr>
+                            <tr><td style="border:1px solid #ccc;padding:6px 12px;"><code>()?</code></td><td style="border:1px solid #ccc;padding:6px 12px;">非捕获分组</td><td style="border:1px solid #ccc;padding:6px 12px;"><code>(?:ab)+ → abab</code></td></tr>
+                        </tbody>
+                    </table>
+                </div>`;
+            }
+            document.getElementById('content_' + type).innerHTML = topContent + `
+                <div class="btn-group" style="margin-top:18px;"><button class="btn" onclick="copyCode('${type}')">复制代码</button></div>
+                <pre class="code-box" id="code_${type}"></pre>
+            `;
+            document.getElementById('code_' + type).textContent = code;
+        }
+        function copyCode(type) {
+            const el = document.getElementById('code_' + type);
+            if (!el) { showToast('无内容可复制'); return; }
+            const text = el.textContent;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => showToast('已复制')).catch(() => fallbackCopy(text));
+            } else { fallbackCopy(text); }
+        }
+        function fallbackCopy(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); showToast('已复制'); } catch(e) { showToast('复制失败'); }
+            document.body.removeChild(ta);
+        }
+        function showToast(msg) {
+            let t = document.getElementById('toast');
+            if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; document.body.appendChild(t); }
+            t.textContent = msg; t.style.opacity = '1';
+            setTimeout(() => t.style.opacity = '0', 2000);
+        }
+        loadExample('mysql');
+    </script>
+</body>
+</html>

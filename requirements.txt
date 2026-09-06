@@ -1,0 +1,16 @@
+# Alance 测试工具平台 - Render 部署依赖
+Flask>=3.0
+gunicorn>=21.2
+# 图片处理 / 图片生成
+Pillow>=10.0
+# 加解密（AES/RSA，crypto_tools 使用 Crypto.* ）
+pycryptodome>=3.20
+# 二维码 / 条形码（data_converter）
+qrcode>=7.4
+python-barcode>=0.15
+# 文件生成：xlsx / docx / 7z
+openpyxl>=3.1
+python-docx>=1.1
+py7zr>=0.20
+# PDF 转图片（image_processor，PyMuPDF 提供 fitz）
+PyMuPDF>=1.24

@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文本处理工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            padding: 30px 20px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            color: #222222;
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            font-size: 2.625rem;
+            margin-bottom: 12px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        .header p {
+            font-size: 1.125rem;
+            color: #666666;
+            letter-spacing: 0.5px;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 6px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            border: 1px solid #dddddd;
+        }
+        .tabs {
+            display: flex;
+            background: #ffffff;
+            border-bottom: 1px solid #e0e0e0;
+            flex-wrap: wrap;
+            padding-left: 30px;
+        }
+        .tab {
+            padding: 14px 22px;
+            cursor: pointer;
+            font-weight: 500;
+            color: #444444;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+        .tab:hover {
+            background: #f8fcff;
+            color: #222222;
+        }
+        .tab.active {
+            color: #333333;
+            border-bottom-color: #666666;
+            background: #ffffff;
+        }
+        .tab-content {
+            padding: 30px;
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .card-title {
+            font-size: 1.375rem;
+            font-weight: 600;
+            margin-bottom: 22px;
+            color: #333333;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #cccccc;
+        }
+        .form-group {
+            margin-bottom: 18px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #444444;
+            font-size: 1rem;
+        }
+        .form-group textarea,
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid #cccccc;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: all 0.2s;
+            background: #ffffff;
+            color: #222222;
+        }
+        .form-group textarea {
+            min-height: 150px;
+            font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+            resize: vertical;
+        }
+        .form-group select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            background-size: 16px;
+            padding-right: 40px;
+        }
+        .form-group textarea:focus,
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #666666;
+            box-shadow: 0 0 0 2px rgba(102, 102, 102, 0.1);
+        }
+        .btn {
+            background: #444444;
+            color: #ffffff;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+        .btn:hover {
+            background: #333333;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #555555;
+            border: 1px solid #dddddd;
+        }
+        .btn-secondary:hover {
+            background: #eeeeee;
+            color: #333333;
+            box-shadow: none;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn-group .btn {
+            flex: 1;
+            text-align: center;
+            padding: 12px 14px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+        .stat-card {
+            background: #ffffff;
+            padding: 12px 14px;
+            border-radius: 4px;
+            text-align: center;
+            border: 2px solid #b8b8b8;
+            font-size: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .stat-card strong {
+            display: block;
+            font-size: 1.75rem;
+            color: #222222;
+            font-weight: 600;
+        }
+        .stat-card span {
+            color: #666666;
+            font-size: 0.95rem;
+            margin-top: 4px;
+            display: block;
+        }
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 22px;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        .checkbox-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #666666;
+        }
+        .checkbox-item label {
+            margin: 0;
+            font-weight: 400;
+            color: #444444;
+        }
+        .result-area {
+            margin-top: 22px;
+            padding: 12px 14px;
+            background: #ffffff;
+            border: 2px solid #cccccc;
+            border-radius: 4px;
+            word-break: break-all;
+            max-height: 300px;
+            overflow-y: auto;
+            color: #222222;
+            font-size: 16px;
+            font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+        }
+        .result-area pre {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+            font-size: 16px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .result-area.error {
+            background: #ffffff;
+            border-color: #cccccc;
+            color: #cc0000;
+        }
+        .result-area.success {
+            background: #ffffff;
+            border-color: #cccccc;
+            color: #008800;
+        }
+        .copy-btn {
+            float: right;
+            padding: 5px 14px;
+            font-size: 0.95rem;
+        }
+        .url-list {
+            margin-top: 10px;
+            list-style: none;
+        }
+        .url-list li {
+            padding: 6px 0;
+            border-bottom: 1px solid #e0e0e0;
+            word-break: break-all;
+        }
+        .url-list li:last-child {
+            border-bottom: none;
+        }
+        .url-list a {
+            color: #1a73e8;
+            text-decoration: none;
+            font-weight: 400;
+        }
+        .url-list a:hover {
+            text-decoration: underline;
+            color: #1557b0;
+        }
+        .compare-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 22px;
+        }
+        .diff-add {
+            background: #e8f8e8;
+            color: #008800;
+            padding: 2px 4px;
+            border-radius: 2px;
+            font-weight: 500;
+        }
+        .diff-remove {
+            background: #fef0f0;
+            color: #cc0000;
+            padding: 2px 4px;
+            border-radius: 2px;
+            text-decoration: line-through;
+            font-weight: 500;
+        }
+        .diff-equal {
+            padding: 2px 4px;
+            color: #666666;
+        }
+        .timestamp-options {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-bottom: 22px;
+        }
+        .timestamp-option {
+            padding: 10px 20px;
+            background: #ffffff;
+            border: 1px solid #dddddd;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 400;
+            color: #444444;
+        }
+        .timestamp-option:hover {
+            background: #f5f5f5;
+            border-color: #999999;
+            color: #333333;
+        }
+        .timestamp-option.active {
+            background: #444444;
+            color: #ffffff;
+            border-color: #444444;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>文本处理工具</h1>
+        </div>
+
+        <div class="card">
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('textCompare')">文本对比</div>
+                <div class="tab" onclick="switchTab('jsonCompare')">JSON对比</div>
+                <div class="tab" onclick="switchTab('json')">JSON美化</div>
+                <div class="tab" onclick="switchTab('count')">字数统计</div>
+            </div>
+
+            <div id="textCompare" class="tab-content active">
+                <div class="card-title">文本对比</div>
+
+                <div class="compare-grid">
+                    <div class="form-group">
+                        <label>文本 A</label>
+                        <textarea id="textCompareA" placeholder="输入第一个文本..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>文本 B</label>
+                        <textarea id="textCompareB" placeholder="输入第二个文本..."></textarea>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn" onclick="compareText()">开始对比</button>
+                    <button class="btn btn-secondary" onclick="clearTextCompare()">清空</button>
+                </div>
+
+                <div id="textCompareResult" class="result-area" style="display: none;"></div>
+            </div>
+
+            <div id="jsonCompare" class="tab-content">
+                <div class="card-title">JSON对比</div>
+
+                <div class="compare-grid">
+                    <div class="form-group">
+                        <label>JSON A</label>
+                        <textarea id="jsonCompareA" placeholder="输入第一个JSON..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>JSON B</label>
+                        <textarea id="jsonCompareB" placeholder="输入第二个JSON..."></textarea>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn" onclick="compareJson()">开始对比</button>
+                    <button class="btn btn-secondary" onclick="clearJsonCompare()">清空</button>
+                </div>
+
+                <div id="jsonCompareResult" class="result-area" style="display: none;"></div>
+            </div>
+
+            <div id="json" class="tab-content">
+                <div class="card-title">JSON格式美化</div>
+
+                <div class="form-group">
+                    <label>输入JSON</label>
+                    <textarea id="jsonInput" placeholder="在此输入或粘贴JSON数据..."></textarea>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn" onclick="formatJson()">格式化JSON</button>
+                    <button class="btn btn-secondary" onclick="minifyJson()">压缩JSON</button>
+                    <button class="btn btn-secondary" onclick="validateJson()">验证JSON</button>
+                    <button class="btn btn-secondary" onclick="copyJson()">复制结果</button>
+                </div>
+
+                <div id="jsonResult" class="result-area" style="display: none;"></div>
+            </div>
+
+            <div id="count" class="tab-content">
+                <div class="card-title">字数统计工具</div>
+
+                <div class="form-group">
+                    <label>输入文本</label>
+                    <textarea id="countInput" placeholder="在此输入或粘贴文本..."></textarea>
+                </div>
+
+                <div class="stats-grid" id="countStats">
+                    <div class="stat-card">
+                        <strong id="statTotal">-</strong>
+                        <span>总字符数</span>
+                    </div>
+                    <div class="stat-card">
+                        <strong id="statChinese">-</strong>
+                        <span>中文字符</span>
+                    </div>
+                    <div class="stat-card">
+                        <strong id="statEnglish">-</strong>
+                        <span>英文字符</span>
+                    </div>
+                    <div class="stat-card">
+                        <strong id="statNumber">-</strong>
+                        <span>数字</span>
+                    </div>
+                    <div class="stat-card">
+                        <strong id="statSpace">-</strong>
+                        <span>空格</span>
+                    </div>
+                    <div class="stat-card">
+                        <strong id="statLine">-</strong>
+                        <span>行数</span>
+                    </div>
+                </div>
+
+                <div class="card-title">文本替换</div>
+                <div class="form-group">
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 150px;">
+                            <label>查找内容</label>
+                            <input type="text" id="findText" placeholder="输入要查找的内容">
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label>替换为</label>
+                            <input type="text" id="replaceText" placeholder="输入替换后的内容">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>匹配模式</label>
+                    <select id="replaceMode">
+                        <option value="case">区分大小写</option>
+                        <option value="insensitive">不区分大小写</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="useRegex" style="width: auto;">
+                        正则表达式
+                    </label>
+                </div>
+                <div class="btn-group">
+                    <button class="btn" onclick="findMatches()">查找</button>
+                    <button class="btn btn-secondary" onclick="doReplace(false)">全部替换</button>
+                    <button class="btn btn-secondary" onclick="doReplace(true)">逐个替换</button>
+                </div>
+                <div id="findResult" class="result-area" style="display: none;"></div>
+
+                <div class="card-title" style="margin-top: 30px;">提取网址</div>
+                <button class="btn" onclick="extractUrls()">提取所有URL</button>
+                <div id="urlResult" class="result-area" style="display: none;"></div>
+            </div>
+
+            <div id="random" class="tab-content">
+                <div class="card-title">随机文本生成器</div>
+
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="charNumbers" checked>
+                        <label for="charNumbers">纯数字 (0-9)</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="charLetters">
+                        <label for="charLetters">纯字母 (a-z, A-Z)</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="charEnglish">
+                        <label for="charEnglish">纯英文字符 (含符号)</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="charChineseSymbols">
+                        <label for="charChineseSymbols">纯中文符号</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="charChinese">
+                        <label for="charChinese">纯中文</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 150px;">
+                            <label>生成个数</label>
+                            <input type="number" id="randomCount" value="10" min="1" max="10000">
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label>每行个数（可选）</label>
+                            <input type="number" id="randomPerLine" value="0" min="0" max="1000">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn" onclick="generateRandom()">生成随机文本</button>
+                    <button class="btn btn-secondary" onclick="copyRandom()">复制结果</button>
+                    <button class="btn btn-secondary" onclick="clearRandom()">清空</button>
+                </div>
+
+                <div id="randomResult" class="result-area" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let timestampMode = 'sec';
+
+        function showToast(message) {
+            let toast = document.getElementById('toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'toast';
+                toast.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #444;
+                    color: white;
+                    padding: 12px 24px;
+                    border-radius: 4px;
+                    font-size: 14px;
+                    z-index: 9999;
+                    opacity: 0;
+                    transition: opacity 0.3s;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                `;
+                document.body.appendChild(toast);
+            }
+            toast.textContent = message;
+            toast.style.opacity = '1';
+            setTimeout(() => {
+                toast.style.opacity = '0';
+            }, 2000);
+        }
+
+        /**
+         * 复制文本到剪贴板（兼容性处理）
+         * 优先使用 Clipboard API，失败时回退到 execCommand
+         * @param {string} text - 要复制的文本
+         */
+        function copyText(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast('已复制');
+                }).catch(() => {
+                    fallbackCopy(text);
+                });
+            } else {
+                fallbackCopy(text);
+            }
+        }
+
+        /**
+         * 回退复制方案：使用 textarea + execCommand
+         * @param {string} text - 要复制的文本
+         */
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast('已复制');
+            } catch (e) {
+                showToast('复制失败');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        function setTimestampMode(mode) {
+            timestampMode = mode;
+            document.querySelectorAll('.timestamp-option').forEach(o => o.classList.remove('active'));
+            document.querySelector(`.timestamp-option[onclick="setTimestampMode('${mode}')"]`).classList.add('active');
+        }
+
+        document.getElementById('countInput').addEventListener('input', updateCountStats);
+
+        function updateCountStats() {
+            const text = document.getElementById('countInput').value;
+            
+            const total = text.length;
+            const chinese = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
+            const english = (text.match(/[a-zA-Z]/g) || []).length;
+            const number = (text.match(/[0-9]/g) || []).length;
+            const space = (text.match(/\s/g) || []).length;
+            const line = text ? text.split('\n').length : 0;
+
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statChinese').textContent = chinese;
+            document.getElementById('statEnglish').textContent = english;
+            document.getElementById('statNumber').textContent = number;
+            document.getElementById('statSpace').textContent = space;
+            document.getElementById('statLine').textContent = line;
+        }
+
+        /**
+         * 构造查找用的正则表达式
+         * @param {boolean} global - 是否全局匹配
+         * @returns {RegExp|null} 构造失败返回 null
+         */
+        function buildFindRegex(global) {
+            const find = document.getElementById('findText').value;
+            const mode = document.getElementById('replaceMode').value;
+            const useRegex = document.getElementById('useRegex').checked;
+            const flags = (global ? 'g' : '') + (mode === 'insensitive' ? 'i' : '');
+
+            try {
+                if (useRegex) {
+                    return new RegExp(find, flags);
+                } else {
+                    return new RegExp(escapeRegExp(find), flags);
+                }
+            } catch (e) {
+                showToast('正则表达式错误：' + e.message);
+                return null;
+            }
+        }
+
+        /**
+         * 查找匹配项并显示结果
+         */
+        function findMatches() {
+            const textarea = document.getElementById('countInput');
+            const find = document.getElementById('findText').value;
+            const resultDiv = document.getElementById('findResult');
+            resultDiv.style.display = 'block';
+
+            if (!find) {
+                resultDiv.className = 'result-area error';
+                resultDiv.innerHTML = '<strong style="color: #c62828;">请输入要查找的内容</strong>';
+                return;
+            }
+
+            const regex = buildFindRegex(true);
+            if (!regex) return;
+
+            const matches = textarea.value.match(regex) || [];
+            const count = matches.length;
+
+            if (count > 0) {
+                resultDiv.className = 'result-area success';
+                resultDiv.innerHTML = `<strong style="color: #2e7d32;">已找到 ${count} 处匹配</strong>`;
+            } else {
+                resultDiv.className = 'result-area error';
+                resultDiv.innerHTML = '<strong style="color: #c62828;">未找到匹配文本</strong>';
+            }
+        }
+
+        /**
+         * 文本替换统一函数
+         * @param {boolean} firstOnly - true=仅替换第一个（逐个替换），false=替换全部
+         */
+        function doReplace(firstOnly) {
+            const textarea = document.getElementById('countInput');
+            const find = document.getElementById('findText').value;
+            const replace = document.getElementById('replaceText').value;
+
+            if (!find) {
+                showToast('请输入要查找的内容');
+                return;
+            }
+
+            const regex = buildFindRegex(firstOnly ? '' : 'g');
+            if (!regex) return;
+
+            const before = textarea.value;
+            textarea.value = textarea.value.replace(regex, replace);
+
+            if (before === textarea.value) {
+                showToast('未找到匹配内容');
+            } else {
+                showToast(firstOnly ? '已替换 1 处' : '替换完成');
+            }
+            updateCountStats();
+        }
+
+        /**
+         * 转义正则特殊字符，用于普通文本匹配
+         * @param {string} str - 待转义的字符串
+         * @returns {string} 转义后的字符串
+         */
+        function escapeRegExp(str) {
+            return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function extractUrls() {
+            const text = document.getElementById('countInput').value;
+            const urlRegex = /https?:\/\/[^\s]+/g;
+            const urls = text.match(urlRegex) || [];
+            
+            const resultDiv = document.getElementById('urlResult');
+            resultDiv.style.display = 'block';
+            
+            if (urls.length === 0) {
+                resultDiv.innerHTML = '<strong>未找到任何URL</strong>';
+            } else {
+                resultDiv.innerHTML = `
+                    <button class="copy-btn btn btn-secondary" onclick="copyUrls()">复制全部URL</button>
+                    <strong>共找到 ${urls.length} 个URL：</strong>
+                    <ul class="url-list">
+                        ${urls.map(url => `<li><a href="${url}" target="_blank">${url}</a></li>`).join('')}
+                    </ul>
+                `;
+            }
+        }
+
+        function copyUrls() {
+            const text = document.getElementById('countInput').value;
+            const urlRegex = /https?:\/\/[^\s]+/g;
+            const urls = text.match(urlRegex) || [];
+            copyText(urls.join('\n'));
+        }
+
+        const CHAR_SETS = {
+            numbers: '0123456789',
+            letters: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
+            english: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?',
+            chineseSymbols: '，。！？、；：\u201C\u201D\u2018\u2019（）【】《》〈〉·「」『』—…·',
+            chinese: generateChineseChars(),
+        };
+
+        function generateChineseChars() {
+            const commonChinese = '的一是不了人我有他这为之大来以个中上们到说国和地出会时要就可以家下而子你生能着她也里后自小过道发里用行所然家种事成方多经么去法学如都同现当没动面起看定天分还进好小部其些主样理心她前开但因从想实日它与长把机十民第公己身走年用部水话法向美变第工者作对进常情明性知全三又关点正业外将两高间由问很物种事立成代声车线在内数重加电力自体制机当使点从业本去把性好应开它合还因由其些然前着天没动面起看定天分还进好小部其些主样理心她前开但因从想实日它与长把机十民第公己身走年用部水话法向美变第工者作对进常情明性知全三又关点正业外将两高间由问很物种事立成代声车线在内数重加电力自体制机当使点从业本去把性好应开它合还因由其些然前着天没动面起看定天分还进好小部其些主样理心她前开但因从想实日它与长把机十民第公己身走年用部水话法向美变第工者作对进常情明性知全三又关点正业外将两高间由问很物种事立成代声车线在内数重加电力自体制机当使点从业本去把性好应开它合还因由其些然前着天没动面起看定天分还进好小部其些主样理心她前开但因从想实日它与长把机十民第公己身走年用部水话法向美变第工者作对进常情明性知全三又关点正业外将两高间由问很物种事立成代声车线在内数重加电力自体制机当使点从业本';
+            return commonChinese;
+        }
+
+        function generateRandom() {
+            const count = parseInt(document.getElementById('randomCount').value);
+            const perLine = parseInt(document.getElementById('randomPerLine').value);
+            
+            if (isNaN(count) || count < 1 || count > 10000) {
+                alert('请输入1-10000之间的数量');
+                return;
+            }
+
+            let charset = '';
+            if (document.getElementById('charNumbers').checked) charset += CHAR_SETS.numbers;
+            if (document.getElementById('charLetters').checked) charset += CHAR_SETS.letters;
+            if (document.getElementById('charEnglish').checked) charset += CHAR_SETS.english;
+            if (document.getElementById('charChineseSymbols').checked) charset += CHAR_SETS.chineseSymbols;
+            if (document.getElementById('charChinese').checked) charset += CHAR_SETS.chinese;
+
+            if (!charset) {
+                alert('请至少选择一种字符类型');
+                return;
+            }
+
+            let result = '';
+            for (let i = 0; i < count; i++) {
+                result += charset[Math.floor(Math.random() * charset.length)];
+                if (perLine > 0 && (i + 1) % perLine === 0 && i < count - 1) {
+                    result += '\n';
+                }
+            }
+
+            const resultDiv = document.getElementById('randomResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `<button class="copy-btn btn btn-secondary" onclick="copyRandom()">复制</button><pre>${result}</pre>`;
+        }
+
+        function copyRandom() {
+            const resultDiv = document.getElementById('randomResult');
+            if (!resultDiv.style.display || resultDiv.style.display === 'none') return;
+            const pre = resultDiv.querySelector('pre');
+            if (pre) {
+                copyText(pre.innerText);
+            } else {
+                showToast('没有可复制的内容');
+            }
+        }
+
+        function clearRandom() {
+            document.getElementById('randomResult').style.display = 'none';
+        }
+
+        function formatJson() {
+            const input = document.getElementById('jsonInput').value;
+            const resultDiv = document.getElementById('jsonResult');
+            resultDiv.style.display = 'block';
+            
+            try {
+                const obj = JSON.parse(input);
+                // 顶层必须是对象或数组
+                if (typeof obj !== 'object' || obj === null) {
+                    throw new Error('顶层必须是对象或数组，不能是原始值');
+                }
+                const formatted = JSON.stringify(obj, null, 2);
+                resultDiv.className = 'result-area';
+                resultDiv.innerHTML = `<button class="copy-btn btn btn-secondary" onclick="copyJson()">复制</button><pre>${formatted}</pre>`;
+            } catch (e) {
+                resultDiv.className = 'result-area error';
+                resultDiv.innerHTML = `<strong>JSON格式错误：</strong>${e.message}`;
+            }
+        }
+
+        function minifyJson() {
+            const input = document.getElementById('jsonInput').value;
+            const resultDiv = document.getElementById('jsonResult');
+            resultDiv.style.display = 'block';
+
+            try {
+                const obj = JSON.parse(input);
+                // 顶层必须是对象或数组
+                if (typeof obj !== 'object' || obj === null) {
+                    throw new Error('顶层必须是对象或数组，不能是原始值');
+                }
+                const minified = JSON.stringify(obj);
+                resultDiv.className = 'result-area';
+                resultDiv.innerHTML = `<button class="copy-btn btn btn-secondary" onclick="copyJson()">复制</button><pre>${minified}</pre>`;
+            } catch (e) {
+                resultDiv.className = 'result-area error';
+                resultDiv.innerHTML = `<strong>JSON格式错误：</strong>${e.message}`;
+            }
+        }
+
+        function validateJson() {
+            const input = document.getElementById('jsonInput').value;
+            const resultDiv = document.getElementById('jsonResult');
+            resultDiv.style.display = 'block';
+
+            try {
+                const obj = JSON.parse(input);
+                // 顶层必须是对象或数组
+                if (typeof obj !== 'object' || obj === null) {
+                    resultDiv.className = 'result-area error';
+                    resultDiv.innerHTML = `<strong>JSON格式错误：</strong>顶层必须是对象或数组，不能是原始值（${typeof obj}）`;
+                    return;
+                }
+                resultDiv.className = 'result-area success';
+                resultDiv.innerHTML = '<strong>✓ JSON格式有效</strong>';
+            } catch (e) {
+                resultDiv.className = 'result-area error';
+                resultDiv.innerHTML = `<strong>JSON格式错误：</strong>${e.message}`;
+            }
+        }
+
+        function copyJson() {
+            const resultDiv = document.getElementById('jsonResult');
+            if (!resultDiv.style.display || resultDiv.style.display === 'none') return;
+            const pre = resultDiv.querySelector('pre');
+            if (pre) {
+                copyText(pre.innerText);
+            } else {
+                showToast('没有可复制的内容');
+            }
+        }
+
+        function compareJson() {
+            const jsonA = document.getElementById('jsonCompareA').value;
+            const jsonB = document.getElementById('jsonCompareB').value;
+            const resultDiv = document.getElementById('jsonCompareResult');
+            resultDiv.style.display = 'block';
+            
+            try {
+                const objA = JSON.parse(jsonA);
+                const objB = JSON.parse(jsonB);
+                
+                const diff = compareObjects(objA, objB);
+                
+                if (diff.length === 0) {
+                    resultDiv.className = 'result-area success';
+                    resultDiv.innerHTML = '<strong>✓ 两个JSON完全相同</strong>';
+                } else {
+                    resultDiv.className = 'result-area';
+                    resultDiv.innerHTML = `
+                        <strong>找到 ${diff.length} 处差异：</strong>
+                        <ul style="margin-top: 10px; list-style: none;">
+                            ${diff.map(d => `<li style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
+                                <span style="color: #336633; font-weight: 600;">${d.path}</span>:
+                                <br>  A: <span class="diff-remove">${d.a !== undefined ? JSON.stringify(d.a) : 'undefined'}</span>
+                                <br>  B: <span class="diff-add">${d.b !== undefined ? JSON.stringify(d.b) : 'undefined'}</span>
+                            </li>`).join('')}
+                        </ul>
+                    `;
+                }
+            } catch (e) {
+                resultDiv.className = 'result-area error';
+                resultDiv.innerHTML = `<strong>JSON格式错误：</strong>${e.message}`;
+            }
+        }
+
+        function compareObjects(objA, objB, path = '') {
+            const diffs = [];
+
+            // 处理 null 情况
+            if (objA === null || objB === null) {
+                if (objA !== objB) {
+                    diffs.push({ path: path || '(root)', a: objA, b: objB });
+                }
+                return diffs;
+            }
+
+            // 处理原始值（数字、字符串、布尔值）
+            if (typeof objA !== 'object' || typeof objB !== 'object') {
+                if (objA !== objB) {
+                    diffs.push({ path: path || '(root)', a: objA, b: objB });
+                }
+                return diffs;
+            }
+
+            // 处理数组类型不一致
+            const isArrA = Array.isArray(objA);
+            const isArrB = Array.isArray(objB);
+            if (isArrA !== isArrB) {
+                diffs.push({ path: path || '(root)', a: objA, b: objB });
+                return diffs;
+            }
+
+            // 处理数组：按索引比较
+            if (isArrA && isArrB) {
+                const maxLen = Math.max(objA.length, objB.length);
+                for (let i = 0; i < maxLen; i++) {
+                    const currentPath = path ? `${path}[${i}]` : `[${i}]`;
+                    if (i >= objA.length) {
+                        diffs.push({ path: currentPath, a: undefined, b: objB[i] });
+                    } else if (i >= objB.length) {
+                        diffs.push({ path: currentPath, a: objA[i], b: undefined });
+                    } else {
+                        diffs.push(...compareObjects(objA[i], objB[i], currentPath));
+                    }
+                }
+                return diffs;
+            }
+
+            // 处理对象：按键比较
+            const keysA = Object.keys(objA);
+            const keysB = Object.keys(objB);
+            const allKeys = [...new Set([...keysA, ...keysB])];
+
+            allKeys.forEach(key => {
+                const currentPath = path ? `${path}.${key}` : key;
+                const valA = objA[key];
+                const valB = objB[key];
+
+                if (!(key in objA)) {
+                    diffs.push({ path: currentPath, a: undefined, b: valB });
+                } else if (!(key in objB)) {
+                    diffs.push({ path: currentPath, a: valA, b: undefined });
+                } else if (typeof valA === 'object' && typeof valB === 'object' && valA !== null && valB !== null) {
+                    diffs.push(...compareObjects(valA, valB, currentPath));
+                } else if (JSON.stringify(valA) !== JSON.stringify(valB)) {
+                    diffs.push({ path: currentPath, a: valA, b: valB });
+                }
+            });
+
+            return diffs;
+        }
+
+        function clearJsonCompare() {
+            document.getElementById('jsonCompareA').value = '';
+            document.getElementById('jsonCompareB').value = '';
+            document.getElementById('jsonCompareResult').style.display = 'none';
+        }
+
+        function compareText() {
+            const textA = document.getElementById('textCompareA').value;
+            const textB = document.getElementById('textCompareB').value;
+            const resultDiv = document.getElementById('textCompareResult');
+            resultDiv.style.display = 'block';
+            
+            if (textA === textB) {
+                resultDiv.className = 'result-area success';
+                resultDiv.innerHTML = '<strong>✓ 两个文本完全相同</strong>';
+                return;
+            }
+            
+            const diff = diffText(textA, textB);
+            resultDiv.className = 'result-area';
+            resultDiv.innerHTML = `<strong>文本对比结果：</strong><pre style="margin-top: 10px; white-space: pre-wrap; font-size: 15px; line-height: 1.6;">${diff}</pre>`;
+        }
+
+        function diffText(textA, textB) {
+            const linesA = textA.split('\n');
+            const linesB = textB.split('\n');
+            const maxLen = Math.max(linesA.length, linesB.length);
+            let result = '';
+            
+            for (let i = 0; i < maxLen; i++) {
+                const lineA = linesA[i] || '';
+                const lineB = linesB[i] || '';
+                
+                if (lineA === lineB) {
+                    result += `<span class="diff-equal">${lineA || '(空行)'}</span>\n`;
+                } else if (!lineA) {
+                    result += `<span class="diff-add">+ ${lineB}</span>\n`;
+                } else if (!lineB) {
+                    result += `<span class="diff-remove">- ${lineA}</span>\n`;
+                } else {
+                    result += `<span class="diff-remove">- ${lineA}</span>\n`;
+                    result += `<span class="diff-add">+ ${lineB}</span>\n`;
+                }
+            }
+            
+            return result;
+        }
+
+        function clearTextCompare() {
+            document.getElementById('textCompareA').value = '';
+            document.getElementById('textCompareB').value = '';
+            document.getElementById('textCompareResult').style.display = 'none';
+        }
+
+        function convertTimestamp() {
+            const input = document.getElementById('timestampInput').value.trim();
+            const resultDiv = document.getElementById('timestampResult');
+            resultDiv.style.display = 'block';
+            
+            try {
+                let result = '';
+                
+                if (timestampMode === 'sec') {
+                    const timestamp = parseInt(input);
+                    const date = new Date(timestamp * 1000);
+                    result = `<strong>转换结果：</strong><br>
+                        日期时间：${date.toLocaleString('zh-CN')}<br>
+                        UTC时间：${date.toISOString()}`;
+                } else if (timestampMode === 'ms') {
+                    const timestamp = parseInt(input);
+                    const date = new Date(timestamp);
+                    result = `<strong>转换结果：</strong><br>
+                        日期时间：${date.toLocaleString('zh-CN')}<br>
+                        UTC时间：${date.toISOString()}`;
+                } else if (timestampMode === 'date') {
+                    const date = new Date(input);
+                    if (isNaN(date.getTime())) {
+                        throw new Error('无效的日期格式');
+                    }
+                    result = `<strong>转换结果：</strong><br>
+                        秒级时间戳：${Math.floor(date.getTime() / 1000)}<br>
+                        毫秒时间戳：${date.getTime()}`;
+                }
+                
+                resultDiv.className = 'result-area success';
+                resultDiv.innerHTML = result;
+            } catch (e) {
+                resultDiv.className = 'result-area error';
+                resultDiv.innerHTML = `<strong>转换错误：</strong>${e.message}`;
+            }
+        }
+
+        function getCurrentTimestamp() {
+            const now = new Date();
+            document.getElementById('timestampInput').value = Math.floor(now.getTime() / 1000);
+            setTimestampMode('sec');
+            convertTimestamp();
+        }
+
+        function copyTimestamp() {
+            const resultDiv = document.getElementById('timestampResult');
+            if (!resultDiv.style.display || resultDiv.style.display === 'none') return;
+            const text = resultDiv.innerText.replace('转换结果：', '').replace(/\n/g, '');
+            copyText(text);
+        }
+    </script>
+</body>
+</html>

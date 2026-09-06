@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日志分析工具</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            padding: 30px 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            color: #222222;
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            font-size: 2.625rem;
+            margin-bottom: 12px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        .header p {
+            font-size: 1.125rem;
+            color: #666666;
+            letter-spacing: 0.5px;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 6px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid #dddddd;
+        }
+        .card-title {
+            font-size: 1.375rem;
+            font-weight: 600;
+            margin-bottom: 22px;
+            color: #333333;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #cccccc;
+        }
+        .form-row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #444444;
+            font-size: 1rem;
+        }
+        .form-group select,
+        .form-group input,
+        .form-group button,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid #cccccc;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: all 0.2s;
+            background: #ffffff;
+            color: #222222;
+        }
+        .form-group select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            background-size: 16px;
+            padding-right: 40px;
+        }
+        .form-group textarea {
+            min-height: 150px;
+            font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+            resize: vertical;
+        }
+        .form-group select:focus,
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #666666;
+            box-shadow: 0 0 0 2px rgba(102, 102, 102, 0.1);
+        }
+        .btn {
+            background: #444444;
+            color: #ffffff;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+        .btn:hover {
+            background: #333333;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #555555;
+            border: 1px solid #dddddd;
+        }
+        .btn-secondary:hover {
+            background: #eeeeee;
+            color: #333333;
+            box-shadow: none;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .upload-area {
+            border: 2px dashed #cccccc;
+            border-radius: 4px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 20px;
+            background: #ffffff;
+        }
+        .upload-area:hover,
+        .upload-area.dragover {
+            border-color: #666666;
+            background: #f5f5f5;
+        }
+        .upload-area svg {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: #ffffff;
+            padding: 12px 14px;
+            border-radius: 4px;
+            text-align: center;
+            border: 2px solid #b8b8b8;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .stat-card strong {
+            display: block;
+            font-size: 1.75rem;
+            margin-bottom: 5px;
+            color: #222222;
+            font-weight: 600;
+        }
+        .stat-card.error strong { color: #cc0000; }
+        .stat-card.warning strong { color: #e6a700; }
+        .stat-card.info strong { color: #0066cc; }
+        .stat-card.debug strong { color: #666666; }
+        .stat-card.total strong { color: #222222; }
+        .stat-card span {
+            color: #666666;
+            font-size: 0.95rem;
+            margin-top: 4px;
+            display: block;
+        }
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            border: 1px solid #dddddd;
+            border-radius: 4px;
+            padding: 10px;
+        }
+        .table-container {
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 2px solid #cccccc;
+            border-radius: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 0.9rem;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        th {
+            background: #f5f5f5;
+            color: #333333;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            border-bottom: 2px solid #cccccc;
+        }
+        tr:hover {
+            background: #f9f9f9;
+        }
+        .level-ERROR { color: #cc0000; font-weight: bold; }
+        .level-WARNING { color: #e6a700; font-weight: bold; }
+        .level-INFO { color: #0066cc; }
+        .level-DEBUG { color: #666666; }
+        .level-CRITICAL { color: #721c24; font-weight: bold; }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666666;
+        }
+        .loading svg {
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 10px;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px;
+            color: #999;
+        }
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .search-box input[type="text"] {
+            flex: 2;
+            min-width: 200px;
+            padding: 12px 14px;
+            border: 2px solid #cccccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .search-box input[type="text"]:focus {
+            outline: none;
+            border-color: #666666;
+            box-shadow: 0 0 0 2px rgba(102, 102, 102, 0.1);
+        }
+        .search-box button {
+            flex: 0.5;
+            min-width: 100px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>日志分析工具</h1>
+            <p>上传或粘贴日志文件，自动分析并可视化展示</p>
+        </div>
+
+        <div class="card">
+            <div class="card-title">日志输入</div>
+            
+            <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                <input type="file" id="fileInput" accept=".log,.txt" style="display:none" onchange="handleFileSelect(event)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <p>点击或拖拽文件到此处上传</p>
+                <p style="font-size: 0.9rem; color: #999; margin-top: 5px;">支持 .log, .txt 文件</p>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>日志格式</label>
+                    <select id="logFormat">
+                        <option value="auto">自动检测</option>
+                        <option value="nginx">Nginx</option>
+                        <option value="apache">Apache</option>
+                        <option value="application">应用日志</option>
+                        <option value="general">通用格式</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex: 0.5;">
+                    <label>&nbsp;</label>
+                    <div class="btn-group">
+                        <button class="btn btn-secondary" onclick="loadSample()">加载示例</button>
+                        <button class="btn btn-secondary" onclick="clearText()">清空</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>日志内容（或直接粘贴）</label>
+                <textarea id="logText" placeholder="在此粘贴日志内容..."></textarea>
+            </div>
+
+            <button class="btn" onclick="analyzeLog()" style="width: 100%; padding: 15px;">开始分析</button>
+        </div>
+
+        <div class="card" id="resultsCard" style="display: none;">
+            <div class="card-title">分析结果</div>
+            
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card total">
+                    <strong id="statTotal">-</strong>
+                    <span>总日志数</span>
+                </div>
+                <div class="stat-card error">
+                    <strong id="statError">-</strong>
+                    <span>错误数</span>
+                </div>
+                <div class="stat-card warning">
+                    <strong id="statWarning">-</strong>
+                    <span>警告数</span>
+                </div>
+                <div class="stat-card info">
+                    <strong id="statInfo">-</strong>
+                    <span>信息数</span>
+                </div>
+                <div class="stat-card debug">
+                    <strong id="statDebug">-</strong>
+                    <span>调试数</span>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <canvas id="levelChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <canvas id="timeChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <canvas id="ipChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+
+            <div class="search-box">
+                <input type="text" id="searchKeyword" placeholder="搜索关键词...">
+                <button class="btn" onclick="searchLog()">搜索</button>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap; color: #444444; font-size: 1rem; margin: 0;">
+                    <input type="checkbox" id="caseSensitive" style="width: 16px; height: 16px; margin: 0; padding: 0; cursor: pointer; accent-color: #666666; flex-shrink: 0;">
+                    区分大小写
+                </label>
+            </div>
+
+            <div class="table-container" id="tableContainer">
+                <div class="empty-state">
+                    <p>分析完成，查看上方统计图表</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentLogText = '';
+        let levelChart = null;
+        let timeChart = null;
+        let ipChart = null;
+        let statusChart = null;
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('logText').value = e.target.result;
+                currentLogText = e.target.result;
+            };
+            reader.readAsText(file);
+        }
+
+        document.getElementById('uploadArea').addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+
+        document.getElementById('uploadArea').addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+        });
+
+        document.getElementById('uploadArea').addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && (file.name.endsWith('.log') || file.name.endsWith('.txt'))) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('logText').value = e.target.result;
+                    currentLogText = e.target.result;
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        async function loadSample() {
+            try {
+                const response = await fetch('api/sample');
+                const result = await response.json();
+                if (result.success) {
+                    document.getElementById('logText').value = result.sample;
+                    currentLogText = result.sample;
+                }
+            } catch (error) {
+                console.error('加载示例失败:', error);
+            }
+        }
+
+        function clearText() {
+            document.getElementById('logText').value = '';
+            currentLogText = '';
+            document.getElementById('resultsCard').style.display = 'none';
+        }
+
+        async function analyzeLog() {
+            const logText = document.getElementById('logText').value;
+            const logFormat = document.getElementById('logFormat').value;
+            
+            if (!logText.trim()) {
+                alert('请输入日志内容');
+                return;
+            }
+
+            currentLogText = logText;
+            document.getElementById('resultsCard').style.display = 'block';
+            document.getElementById('tableContainer').innerHTML = `
+                <div class="loading">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" stroke-dasharray="60" stroke-dashoffset="0"></circle>
+                    </svg>
+                    <p>正在分析日志...</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch('api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        log_text: logText,
+                        log_format: logFormat,
+                    }),
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    updateStats(result.summary);
+                    renderCharts(result.summary);
+                    renderTable(result.lines);
+                } else {
+                    alert(result.error);
+                    document.getElementById('tableContainer').innerHTML = '<div class="empty-state"><p>分析失败，请重试</p></div>';
+                }
+            } catch (error) {
+                console.error('分析失败:', error);
+                document.getElementById('tableContainer').innerHTML = '<div class="empty-state"><p>分析失败，请检查网络连接</p></div>';
+            }
+        }
+
+        function updateStats(summary) {
+            document.getElementById('statTotal').textContent = summary.total_lines;
+            document.getElementById('statError').textContent = summary.error_count;
+            document.getElementById('statWarning').textContent = summary.warning_count;
+            document.getElementById('statInfo').textContent = summary.info_count;
+            document.getElementById('statDebug').textContent = summary.debug_count;
+        }
+
+        function renderCharts(summary) {
+            if (levelChart) levelChart.destroy();
+            if (timeChart) timeChart.destroy();
+            if (ipChart) ipChart.destroy();
+            if (statusChart) statusChart.destroy();
+
+            const levelCtx = document.getElementById('levelChart').getContext('2d');
+            levelChart = new Chart(levelCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(summary.level_distribution),
+                    datasets: [{
+                        data: Object.values(summary.level_distribution),
+                        backgroundColor: ['#cc0000', '#e6a700', '#0066cc', '#666666', '#721c24', '#cccccc'],
+                        borderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    title: { display: true, text: '日志级别分布' },
+                }
+            });
+
+            const timeCtx = document.getElementById('timeChart').getContext('2d');
+            timeChart = new Chart(timeCtx, {
+                type: 'line',
+                data: {
+                    labels: Object.keys(summary.time_distribution),
+                    datasets: [{
+                        label: '日志数量',
+                        data: Object.values(summary.time_distribution),
+                        borderColor: '#666666',
+                        backgroundColor: 'rgba(102, 102, 102, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    title: { display: true, text: '时间分布趋势' },
+                    scales: { x: { ticks: { maxTicksLimit: 10 } } },
+                }
+            });
+
+            const ipCtx = document.getElementById('ipChart').getContext('2d');
+            ipChart = new Chart(ipCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(summary.ip_distribution),
+                    datasets: [{
+                        label: '请求数',
+                        data: Object.values(summary.ip_distribution),
+                        backgroundColor: '#999999',
+                        borderColor: '#666666',
+                        borderWidth: 1,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    title: { display: true, text: 'Top IP地址' },
+                    scales: { x: { ticks: { maxRotation: 45, minRotation: 0 } } },
+                }
+            });
+
+            const statusCtx = document.getElementById('statusChart').getContext('2d');
+            statusChart = new Chart(statusCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(summary.status_distribution),
+                    datasets: [{
+                        label: '数量',
+                        data: Object.values(summary.status_distribution),
+                        backgroundColor: Object.keys(summary.status_distribution).map(s => 
+                            s >= 500 ? '#cc0000' : s >= 400 ? '#e6a700' : '#008800'
+                        ),
+                        borderWidth: 1,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    title: { display: true, text: 'HTTP状态码分布' },
+                }
+            });
+        }
+
+        function renderTable(lines) {
+            if (!lines || lines.length === 0) {
+                document.getElementById('tableContainer').innerHTML = '<div class="empty-state"><p>没有数据可显示</p></div>';
+                return;
+            }
+
+            const html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>级别</th>
+                            <th>时间</th>
+                            <th>IP</th>
+                            <th>方法</th>
+                            <th>URL</th>
+                            <th>状态</th>
+                            <th>消息</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${lines.map(line => `
+                            <tr>
+                                <td><span class="level-${line.level}">${line.level}</span></td>
+                                <td>${line.time}</td>
+                                <td>${line.ip || '-'}</td>
+                                <td>${line.method || '-'}</td>
+                                <td>${line.url || '-'}</td>
+                                <td>${line.status || '-'}</td>
+                                <td title="${line.raw}">${line.message}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            document.getElementById('tableContainer').innerHTML = html;
+        }
+
+        async function searchLog() {
+            const keyword = document.getElementById('searchKeyword').value;
+            const caseSensitive = document.getElementById('caseSensitive').checked;
+            
+            if (!keyword.trim()) {
+                alert('请输入搜索关键词');
+                return;
+            }
+
+            document.getElementById('tableContainer').innerHTML = `
+                <div class="loading">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" stroke-dasharray="60" stroke-dashoffset="0"></circle>
+                    </svg>
+                    <p>正在搜索...</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch('api/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        log_text: currentLogText,
+                        keyword: keyword,
+                        case_sensitive: caseSensitive,
+                    }),
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    renderTable(result.results);
+                } else {
+                    alert(result.error);
+                }
+            } catch (error) {
+                console.error('搜索失败:', error);
+                alert('搜索失败');
+            }
+        }
+    </script>
+</body>
+</html>

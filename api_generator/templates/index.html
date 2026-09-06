@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API造数工具</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif; background: #fff; min-height: 100vh; padding: 30px 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { text-align: center; color: #222; margin-bottom: 40px; }
+        .header h1 { font-size: 2.625rem; margin-bottom: 12px; font-weight: 600; letter-spacing: 1px; }
+        .header p { font-size: 1.125rem; color: #666; }
+        .card { background: #fff; border-radius: 6px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); overflow: hidden; border: 1px solid #ddd; margin-bottom: 30px; }
+        .tabs { display: flex; background: #fff; border-bottom: 1px solid #e0e0e0; flex-wrap: wrap; padding-left: 30px; }
+        .tab { padding: 14px 22px; cursor: pointer; font-weight: 500; color: #444; border-bottom: 2px solid transparent; transition: all 0.2s; font-size: 1rem; }
+        .tab:hover { background: #f8fcff; color: #222; }
+        .tab.active { color: #333; border-bottom-color: #666; background: #fff; }
+        .tab-content { padding: 30px; display: none; }
+        .tab-content.active { display: block; }
+        .btn { background: #444; color: #fff; border: none; padding: 12px 28px; border-radius: 4px; cursor: pointer; font-weight: 500; transition: all 0.2s; font-size: 1rem; }
+        .btn:hover { background: #333; }
+        .btn-group { display: flex; gap: 10px; margin-bottom: 16px; }
+        pre.code-box { background: #f8f8f8; border: 1px solid #ddd; border-radius: 4px; padding: 16px; overflow-x: auto; font-family: 'Consolas', 'Courier New', monospace; font-size: 14px; line-height: 1.6; color: #333; max-height: 650px; overflow-y: auto; white-space: pre; }
+        .toast { position: fixed; top: 20px; right: 20px; background: #444; color: white; padding: 12px 24px; border-radius: 4px; font-size: 14px; z-index: 9999; opacity: 0; transition: opacity 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>API造数工具</h1>
+            <p>Postman / JMeter / Python 线程池造数示例</p>
+        </div>
+        <div class="card">
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('postman')">Postman造数</div>
+                <div class="tab" onclick="switchTab('jmeter')">JMeter造数</div>
+                <div class="tab" onclick="switchTab('python')">Python造数</div>
+            </div>
+            <div class="tab-content active" id="content_postman"></div>
+            <div class="tab-content" id="content_jmeter"></div>
+            <div class="tab-content" id="content_python"></div>
+        </div>
+    </div>
+    <script>
+        const examples = {};
+        function switchTab(name) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector(`.tab[onclick="switchTab('${name}')"]`).classList.add('active');
+            document.getElementById('content_' + name).classList.add('active');
+            loadExample(name);
+        }
+        async function loadExample(type) {
+            if (examples[type]) { render(type, examples[type]); return; }
+            const r = await fetch('api/example?type=' + type);
+            const data = await r.json();
+            if (data.success) { examples[type] = data.code; render(type, data.code); }
+        }
+        function render(type, code) {
+            document.getElementById('content_' + type).innerHTML = `
+                <div class="btn-group"><button class="btn" onclick="copyCode('${type}')">复制代码</button></div>
+                <pre class="code-box" id="code_${type}"></pre>
+            `;
+            document.getElementById('code_' + type).textContent = code;
+        }
+        function copyCode(type) {
+            const el = document.getElementById('code_' + type);
+            if (el) navigator.clipboard.writeText(el.textContent).then(() => showToast('已复制'));
+        }
+        function showToast(msg) {
+            let t = document.getElementById('toast');
+            if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; document.body.appendChild(t); }
+            t.textContent = msg; t.style.opacity = '1';
+            setTimeout(() => t.style.opacity = '0', 2000);
+        }
+        loadExample('postman');
+    </script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+# Render Blueprint 配置：https://render.com/docs/blueprint-spec
+# 在 Render 控制台选 New > Blueprint，连接本仓库后会自动按此配置创建服务
+services:
+  - type: web
+    name: alance-test-tools
+    runtime: python
+    plan: free                 # 免费套餐：空闲 15 分钟休眠，首次访问约 30-60 秒冷启动
+    buildCommand: pip install -r requirements.txt
+    # gunicorn 以 platform 目录为工作目录加载 WSGI 入口 app:application
+    # $PORT 由 Render 注入；threads 应对 iframe 页面加载时的并发请求；timeout 放宽以支持大文件生成
+    startCommand: gunicorn --chdir platform --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 180 app:application
+    healthCheckPath: /health
+    autoDeploy: true           # 推送 main 分支后自动重新部署

@@ -1,0 +1,92 @@
+# -*- coding: utf-8 -*-
+"""
+Alance 测试工具平台
+将 10 个独立 Flask 工具合并到单端口运行：
+- 根路径 / 渲染平台主页面（顶部 header + 左侧菜单 + 右侧 iframe）
+- 每个工具通过 DispatcherMiddleware 挂载到 /t/<key>/ 前缀下
+- 模板内 API 请求使用相对路径（'api/...'），独立运行与平台挂载均兼容
+"""
+import os
+import sys
+import importlib.util
+
+from flask import Flask, render_template
+from werkzeug.middleware.dispatcher import DispatcherMiddleware
+from werkzeug.serving import run_simple
+
+# 工作区根目录（platform 的上一级）
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# 菜单项：(挂载key, 工具目录名, 菜单显示名)，顺序即左侧菜单顺序
+TOOLS = [
+    ('text',    'font_beauty',        '文本处理'),
+    ('log',     'log_analyze',        '日志分析'),
+    ('data',    'test_data',          '测试数据生成'),
+    ('file',    'file_generator_tool','测试文件生成'),
+    ('convert', 'data_converter',     '数据格式转换'),
+    ('image',   'image_processor',    '图片处理'),
+    ('crypto',  'crypto_tools',       '加解密处理'),
+    ('sql',     'sql_generator',      '存过造数'),
+    ('pygen',   'python_generator',   'Python 造数'),
+    ('apigen',  'api_generator',      'API 造数'),
+]
+
+
+def load_tool_app(key, dirname):
+    """以唯一模块名动态加载单个工具的 app.py，返回其 Flask 实例。
+
+    注册到 sys.modules 后再 exec，保证 Flask(__name__) 能通过
+    模块 __file__ 定位到工具目录（templates 根路径正确）。
+    """
+    tool_dir = os.path.join(BASE_DIR, dirname)
+    app_path = os.path.join(tool_dir, 'app.py')
+    mod_name = 'alance_tool_' + key
+    spec = importlib.util.spec_from_file_location(mod_name, app_path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[mod_name] = module          # 先注册，Flask 才能找到模块
+    if tool_dir not in sys.path:
+        sys.path.insert(0, tool_dir)        # 工具目录加入模块搜索路径
+    spec.loader.exec_module(module)
+    # 子应用以模块方式加载时 debug=False，Jinja 默认缓存模板；
+    # 显式开启自动重载，保证修改工具模板后无需重启即可生效
+    module.app.config['TEMPLATES_AUTO_RELOAD'] = True
+    module.app.jinja_env.auto_reload = True
+    return module.app
+
+
+# 平台根应用（主页面）
+root_app = Flask(__name__)
+root_app.config['TEMPLATES_AUTO_RELOAD'] = True
+root_app.jinja_env.auto_reload = True
+
+
+@root_app.route('/')
+def index():
+    """渲染平台主页面：header + 左侧菜单 + 右侧 iframe 功能区"""
+    menu = [{'key': k, 'name': n} for k, _, n in TOOLS]
+    return render_template('index.html', menu=menu)
+
+
+@root_app.route('/health')
+def health():
+    """健康检查"""
+    return 'ok'
+
+
+def build_app():
+    """加载全部工具并构建 DispatcherMiddleware 合并应用"""
+    mounts = {}
+    for key, dirname, name in TOOLS:
+        sub_app = load_tool_app(key, dirname)
+        mounts['/t/' + key] = sub_app
+        print(f'[挂载] /t/{key:<8} -> {dirname:<20} {name}')
+    return DispatcherMiddleware(root_app, mounts)
+
+
+application = build_app()
+
+
+if __name__ == '__main__':
+    print('Alance 测试工具平台启动: http://127.0.0.1:5000')
+    run_simple('0.0.0.0', 5000, application,
+               use_reloader=True, use_debugger=True, use_evalex=True)

@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# 生成的临时/输出文件
+*.zip
+*.rar
+*.7z
+*.xlsx
+*.docx
+*.pdf
+!render.yaml
+
+# IDE / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Trae
+.trae/

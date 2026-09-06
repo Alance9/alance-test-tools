@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>加解密处理工具</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif; background: #fff; min-height: 100vh; padding: 30px 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { text-align: center; color: #222; margin-bottom: 40px; }
+        .header h1 { font-size: 2.625rem; margin-bottom: 12px; font-weight: 600; letter-spacing: 1px; }
+        .header p { font-size: 1.125rem; color: #666; }
+        .card { background: #fff; border-radius: 6px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); overflow: hidden; border: 1px solid #ddd; margin-bottom: 30px; }
+        .tabs { display: flex; background: #fff; border-bottom: 1px solid #e0e0e0; flex-wrap: wrap; padding-left: 30px; }
+        .tab { padding: 14px 22px; cursor: pointer; font-weight: 500; color: #444; border-bottom: 2px solid transparent; transition: all 0.2s; font-size: 1rem; }
+        .tab:hover { background: #f8fcff; color: #222; }
+        .tab.active { color: #333; border-bottom-color: #666; background: #fff; }
+        .tab-content { padding: 30px; display: none; }
+        .tab-content.active { display: block; }
+        .card-title { font-size: 1.375rem; font-weight: 600; margin-bottom: 22px; color: #333; padding-bottom: 10px; border-bottom: 2px solid #ccc; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; color: #444; font-size: 1rem; }
+        .form-group textarea, .form-group input, .form-group select { width: 100%; padding: 12px 14px; border: 2px solid #ccc; border-radius: 4px; font-size: 16px; transition: all 0.2s; background: #fff; color: #222; font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif; }
+        .form-group select {
+            appearance: none; -webkit-appearance: none; -moz-appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat; background-position: right 14px center; background-size: 16px;
+            padding-right: 40px;
+        }
+        .form-group textarea { min-height: 120px; resize: vertical; }
+        .form-group textarea:focus, .form-group input:focus, .form-group select:focus { outline: none; border-color: #666; box-shadow: 0 0 0 2px rgba(102,102,102,0.1); }
+        .btn { background: #444; color: #fff; border: none; padding: 12px 28px; border-radius: 4px; cursor: pointer; font-weight: 500; letter-spacing: 0.5px; transition: all 0.2s; font-size: 1rem; }
+        .btn:hover { background: #333; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .btn-secondary { background: #f5f5f5; color: #555; border: 1px solid #ddd; }
+        .btn-secondary:hover { background: #eee; color: #333; box-shadow: none; }
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+        .output-box { border: 2px solid #ccc; border-radius: 4px; padding: 16px; background: #fff; margin-top: 12px; font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif; font-size: 15px; color: #222; white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow-y: auto; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .toast { position: fixed; top: 20px; right: 20px; background: #444; color: white; padding: 12px 24px; border-radius: 4px; font-size: 14px; z-index: 9999; opacity: 0; transition: opacity 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .result-success { color: #2e7d32; }
+        .result-error { color: #c62828; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>加解密处理工具</h1>
+            <p>Base64、MD5/SHA、AES、RSA、编码转换、密钥生成</p>
+        </div>
+        <div class="card">
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('base64')">Base64</div>
+                <div class="tab" onclick="switchTab('hash')">MD5/SHA</div>
+                <div class="tab" onclick="switchTab('aes')">AES加解密</div>
+                <div class="tab" onclick="switchTab('rsa')">RSA加解密</div>
+                <div class="tab" onclick="switchTab('encoding')">编码转换</div>
+                <div class="tab" onclick="switchTab('keygen')">密钥生成</div>
+            </div>
+
+            <div id="base64" class="tab-content active">
+                <div class="card-title">Base64 加解密</div>
+                <div class="form-group"><label>输入内容</label><textarea id="b64Input" placeholder="文本或Base64字符串..."></textarea></div>
+                <div class="btn-group">
+                    <button class="btn" onclick="doB64('encode')">编码</button>
+                    <button class="btn" onclick="doB64('decode')">解码</button>
+                    <button class="btn btn-secondary" onclick="copyResult('b64Result')">复制结果</button>
+                </div>
+                <div id="b64Result" class="output-box" style="display:none;"></div>
+            </div>
+
+            <div id="hash" class="tab-content">
+                <div class="card-title">哈希加密（不可逆）</div>
+                <div class="form-group"><label>输入内容</label><textarea id="hashInput" placeholder="输入要加密的文本..."></textarea></div>
+                <div class="btn-group">
+                    <select id="hashAlgo" style="padding:12px 40px 12px 14px;">
+                        <option value="md5">MD5 (32位)</option>
+                        <option value="sha1">SHA-1 (40位)</option>
+                        <option value="sha256">SHA-256 (64位)</option>
+                        <option value="sha512">SHA-512 (128位)</option>
+                    </select>
+                    <button class="btn" onclick="doHash()">加密</button>
+                    <button class="btn btn-secondary" onclick="copyResult('hashResult')">复制结果</button>
+                </div>
+                <div id="hashResult" class="output-box" style="display:none;"></div>
+            </div>
+
+            <div id="aes" class="tab-content">
+                <div class="card-title">AES 加解密</div>
+                <div class="form-group"><label>输入内容</label><textarea id="aesInput" placeholder="明文或Base64密文..."></textarea></div>
+                <div class="grid-2">
+                    <div class="form-group"><label>密钥</label><input type="text" id="aesKey" placeholder="任意字符串（自动转32字节）"></div>
+                    <div class="form-group"><label>IV（可选，CBC模式）</label><input type="text" id="aesIv" placeholder="16字节，留空自动生成"></div>
+                </div>
+                <div class="btn-group">
+                    <select id="aesMode" style="padding:12px 40px 12px 14px;">
+                        <option value="CBC">CBC 模式</option>
+                        <option value="ECB">ECB 模式</option>
+                    </select>
+                    <button class="btn" onclick="doAes('encrypt')">加密</button>
+                    <button class="btn" onclick="doAes('decrypt')">解密</button>
+                    <button class="btn btn-secondary" onclick="copyResult('aesResult')">复制结果</button>
+                </div>
+                <div id="aesResult" class="output-box" style="display:none;"></div>
+            </div>
+
+            <div id="rsa" class="tab-content">
+                <div class="card-title">RSA 加解密 / 签名验签</div>
+                <div class="form-group"><label>输入内容</label><textarea id="rsaInput" placeholder="明文或Base64密文..."></textarea></div>
+                <div class="form-group"><label>密钥（PEM格式，私钥用于解密/签名，公钥用于加密/验签）</label><textarea id="rsaKey" placeholder="-----BEGIN PRIVATE KEY-----...或-----BEGIN PUBLIC KEY-----..." style="min-height:100px;"></textarea></div>
+                <div class="btn-group">
+                    <button class="btn" onclick="doRsa('encrypt')">加密（公钥）</button>
+                    <button class="btn" onclick="doRsa('decrypt')">解密（私钥）</button>
+                    <button class="btn" onclick="doRsa('sign')">签名（私钥）</button>
+                    <button class="btn btn-secondary" onclick="doRsa('verify')">验签（公钥）</button>
+                </div>
+                <div class="form-group" id="rsaSigGroup" style="display:none;margin-top:12px;"><label>签名（验签时需要）</label><textarea id="rsaSig" placeholder="Base64签名..."></textarea></div>
+                <div id="rsaResult" class="output-box" style="display:none;"></div>
+            </div>
+
+            <div id="encoding" class="tab-content">
+                <div class="card-title">编码转换</div>
+                <div class="form-group"><label>输入内容</label><textarea id="encInput" placeholder="输入要转换的文本..."></textarea></div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>原编码</label>
+                        <select id="encFrom">
+                            <option value="utf-8">UTF-8</option>
+                            <option value="gbk">GBK</option>
+                            <option value="gb2312">GB2312</option>
+                            <option value="iso-8859-1">ISO-8859-1</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>目标编码</label>
+                        <select id="encTo">
+                            <option value="utf-8">UTF-8</option>
+                            <option value="gbk">GBK</option>
+                            <option value="gb2312">GB2312</option>
+                            <option value="iso-8859-1">ISO-8859-1</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn" onclick="doEncoding()">转换</button>
+                    <button class="btn btn-secondary" onclick="copyResult('encResult')">复制结果</button>
+                </div>
+                <div id="encResult" class="output-box" style="display:none;"></div>
+            </div>
+
+            <div id="keygen" class="tab-content">
+                <div class="card-title">密钥生成</div>
+                <div class="btn-group" style="margin-bottom:18px;">
+                    <select id="keyType" style="padding:12px 40px 12px 14px;">
+                        <option value="aes">AES 密钥</option>
+                        <option value="rsa">RSA 密钥对</option>
+                    </select>
+                    <select id="keyLen" style="padding:12px 40px 12px 14px;">
+                        <option value="16">AES-128 (16字节)</option>
+                        <option value="24">AES-192 (24字节)</option>
+                        <option value="32" selected>AES-256 (32字节)</option>
+                    </select>
+                    <button class="btn" onclick="doKeyGen()">生成</button>
+                </div>
+                <!-- AES 密钥结果 -->
+                <div id="keyAESResult" style="display:none;">
+                    <div style="margin-bottom:8px;font-weight:500;color:#444;">Hex 密钥</div>
+                    <div class="btn-group" style="margin-bottom:6px;"><button class="btn btn-secondary" onclick="copyText(document.getElementById('keyAesHex').textContent)">复制</button></div>
+                    <div id="keyAesHex" class="output-box"></div>
+                    <div style="margin:14px 0 8px;font-weight:500;color:#444;">Base64 密钥</div>
+                    <div class="btn-group" style="margin-bottom:6px;"><button class="btn btn-secondary" onclick="copyText(document.getElementById('keyAesB64').textContent)">复制</button></div>
+                    <div id="keyAesB64" class="output-box"></div>
+                </div>
+                <!-- RSA 密钥对结果 -->
+                <div id="keyRSAResult" style="display:none;">
+                    <div style="margin-bottom:8px;font-weight:500;color:#444;">私钥 (Private Key)</div>
+                    <div class="btn-group" style="margin-bottom:6px;"><button class="btn btn-secondary" onclick="copyText(document.getElementById('keyRsaPrivate').textContent)">复制私钥</button></div>
+                    <pre id="keyRsaPrivate" class="output-box" style="max-height:300px;"></pre>
+                    <div style="margin:14px 0 8px;font-weight:500;color:#444;">公钥 (Public Key)</div>
+                    <div class="btn-group" style="margin-bottom:6px;"><button class="btn btn-secondary" onclick="copyText(document.getElementById('keyRsaPublic').textContent)">复制公钥</button></div>
+                    <pre id="keyRsaPublic" class="output-box" style="max-height:300px;"></pre>
+                </div>
+                <div id="keyResult" class="output-box result-error" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(name) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector(`.tab[onclick="switchTab('${name}')"]`).classList.add('active');
+            document.getElementById(name).classList.add('active');
+        }
+
+        async function postAPI(path, body) {
+            const res = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            return res.json();
+        }
+
+        function showResult(id, result, isError) {
+            const el = document.getElementById(id);
+            el.style.display = 'block';
+            el.className = 'output-box ' + (isError ? 'result-error' : 'result-success');
+            el.textContent = result;
+        }
+
+        function copyResult(id) {
+            const el = document.getElementById(id);
+            if (el && el.textContent) copyText(el.textContent);
+            else showToast('无结果可复制');
+        }
+
+        function copyText(text) {
+            if (!text) { showToast('无内容可复制'); return; }
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(() => showToast('已复制')).catch(() => fallbackCopy(text));
+                } else {
+                    fallbackCopy(text);
+                }
+            } catch (e) {
+                fallbackCopy(text);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); showToast('已复制'); } catch(e) { showToast('复制失败'); }
+            document.body.removeChild(ta);
+        }
+
+        function showToast(msg) {
+            let t = document.getElementById('toast');
+            if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; document.body.appendChild(t); }
+            t.textContent = msg; t.style.opacity = '1';
+            setTimeout(() => t.style.opacity = '0', 2000);
+        }
+
+        async function doB64(op) {
+            const r = await postAPI('api/crypto/base64', { text: document.getElementById('b64Input').value, op });
+            showResult('b64Result', r.success ? r.result : r.error, !r.success);
+        }
+
+        async function doHash() {
+            const r = await postAPI('api/crypto/hash', { text: document.getElementById('hashInput').value, algo: document.getElementById('hashAlgo').value });
+            showResult('hashResult', r.success ? r.result : r.error, !r.success);
+        }
+
+        async function doAes(op) {
+            const r = await postAPI('api/crypto/aes', { text: document.getElementById('aesInput').value, key: document.getElementById('aesKey').value, op, mode: document.getElementById('aesMode').value, iv: document.getElementById('aesIv').value });
+            showResult('aesResult', r.success ? r.result : r.error, !r.success);
+        }
+
+        async function doRsa(op) {
+            // 验签时显示签名字段，其他操作隐藏
+            document.getElementById('rsaSigGroup').style.display = op === 'verify' ? 'block' : 'none';
+            const body = { text: document.getElementById('rsaInput').value, op, key: document.getElementById('rsaKey').value };
+            if (op === 'verify') {
+                body.signature = document.getElementById('rsaSig').value;
+            }
+            const r = await postAPI('api/crypto/rsa', body);
+            showResult('rsaResult', r.success ? r.result : (r.error || '操作失败'), !r.success);
+        }
+
+        async function doEncoding() {
+            const r = await postAPI('api/crypto/encoding', { text: document.getElementById('encInput').value, from: document.getElementById('encFrom').value, to: document.getElementById('encTo').value });
+            showResult('encResult', r.success ? r.result : r.error, !r.success);
+        }
+
+        async function doKeyGen() {
+            const type = document.getElementById('keyType').value;
+            // 动态更新长度选项
+            document.getElementById('keyLen').innerHTML = type === 'aes'
+                ? '<option value="16">AES-128 (16字节)</option><option value="24">AES-192 (24字节)</option><option value="32" selected>AES-256 (32字节)</option>'
+                : '<option value="1024">RSA-1024</option><option value="2048" selected>RSA-2048</option><option value="4096">RSA-4096</option>';
+            const r = await postAPI('api/crypto/generate_key', { type, length: +document.getElementById('keyLen').value });
+
+            // 隐藏所有结果框
+            document.getElementById('keyAESResult').style.display = 'none';
+            document.getElementById('keyRSAResult').style.display = 'none';
+            document.getElementById('keyResult').style.display = 'none';
+
+            if (r.success) {
+                if (type === 'aes') {
+                    document.getElementById('keyAESResult').style.display = 'block';
+                    document.getElementById('keyAesHex').textContent = r.hex;
+                    document.getElementById('keyAesB64').textContent = r.base64;
+                } else {
+                    document.getElementById('keyRSAResult').style.display = 'block';
+                    document.getElementById('keyRsaPrivate').textContent = r.private_key;
+                    document.getElementById('keyRsaPublic').textContent = r.public_key;
+                }
+            } else {
+                const box = document.getElementById('keyResult');
+                box.style.display = 'block';
+                box.className = 'output-box result-error';
+                box.textContent = r.error || '生成失败';
+            }
+        }
+
+    </script>
+</body>
+</html>
