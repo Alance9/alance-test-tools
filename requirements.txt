@@ -3,6 +3,8 @@ Flask>=3.0
 gunicorn>=21.2
 # 图片处理 / 图片生成
 Pillow>=10.0
+# 测试数据生成（test_data/generators 使用 Faker 制造中文姓名/地址等）
+Faker>=24.0
 # 加解密（AES/RSA，crypto_tools 使用 Crypto.* ）
 pycryptodome>=3.20
 # 二维码 / 条形码（data_converter）
