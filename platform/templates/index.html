@@ -285,6 +285,9 @@
             body.side-open .sidebar { width: 240px; box-shadow: 2px 0 8px rgba(0,0,0,0.15); }
             body.side-open .mask { display: block; }
 
+            /* 移动端展开态：side-collapsed 与 side-open 并存时，按钮需恢复 absolute 贴右 */
+            body.side-collapsed.side-open .side-toggle { position: absolute; }
+
             /* 抽屉展开时恢复完整菜单（覆盖收缩态，源码在后同权重胜出） */
             body.side-open .group-title { display: block; }
             body.side-collapsed.side-open .menu-item .menu-name { display: inline; }
