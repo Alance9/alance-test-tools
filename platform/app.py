@@ -10,7 +10,7 @@ import os
 import sys
 import importlib.util
 
-from flask import Flask, render_template
+from flask import Flask, render_template, send_from_directory
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from werkzeug.serving import run_simple
 
@@ -71,6 +71,22 @@ def index():
 def health():
     """健康检查"""
     return 'ok'
+
+
+# 平台静态资源目录（存放 favicon 等）
+STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
+
+
+@root_app.route('/favicon.ico')
+def favicon_ico():
+    """返回浏览器标签页图标（.ico，多尺寸）"""
+    return send_from_directory(STATIC_DIR, 'favicon.ico', mimetype='image/x-icon')
+
+
+@root_app.route('/favicon.png')
+def favicon_png():
+    """返回浏览器标签页图标（.png，高清）"""
+    return send_from_directory(STATIC_DIR, 'favicon.png', mimetype='image/png')
 
 
 def build_app():

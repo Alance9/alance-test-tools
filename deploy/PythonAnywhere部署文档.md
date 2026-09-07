@@ -109,10 +109,53 @@ https://<用户名>.pythonanywhere.com
 
 ## 三、日常运维
 
+### 3.1 更新代码（详细步骤）
+
+本地代码改完并推送到 GitHub 后，按以下步骤更新到 PythonAnywhere：
+
+**第 1 步：拉取最新代码**
+
+GitHub 克隆方式：
+
+```bash
+cd ~/alance-test-tools
+git pull
+```
+
+> 若本地有新增/修改的二进制文件（如 `platform/static/favicon.ico`、图片等），确保已 `git add` 并 `git push`，否则 `git pull` 拉不到。
+
+zip 上传方式：重新上传 zip 到 Files 页，Bash 中覆盖解压：
+
+```bash
+cd ~
+unzip -o ~/上传的文件名.zip -d ~/alance-test-tools
+```
+
+**第 2 步：（可选）安装新增依赖**
+
+若改动引入了新依赖，需用与 Web App 一致版本的 pip 安装：
+
+```bash
+pip3.10 install --user -r ~/alance-test-tools/requirements.txt
+```
+
+**第 3 步：Reload Web App**
+
+顶部 **Web** 标签页 → 点绿色 **Reload** 按钮。
+
+> 即使只改了模板/静态资源也建议 Reload；WSGI 进程级改动（如 `app.py` 新增路由）必须 Reload 才生效。
+
+**第 4 步：浏览器强刷验证**
+
+访问 `https://<用户名>.pythonanywhere.com`，按 **Ctrl + Shift + R**（或 Cmd+Shift+R）强制刷新，清除浏览器缓存后查看改动是否生效。
+
+---
+
+### 3.2 其他运维速查
+
 | 操作 | 方法 |
 |---|---|
-| **更新代码** | Bash 中 `cd ~/alance-test-tools && git pull`（zip 方式则重新上传解压覆盖）→ Web 页 **Reload** |
-| **改了代码网页没生效** | 必须点 Reload；平台为子应用开启了模板自动重载，但 WSGI 进程级改动仍需 Reload |
+| **改了代码网页没生效** | 必须点 Reload；平台为子应用开启了模板自动重载，但 WSGI 进程级改动仍需 Reload；浏览器端需 Ctrl+Shift+R 强刷清缓存 |
 | **查看错误日志** | Web 标签页 → **error log** / **server log**，重点看 error log 最后 20 行 |
 | **3 个月到期提醒** | 免费 Web App 每 1 个月需登录控制台点一次续期（页面会提示），否则暂停 |
 | **Bash 会话过期** | Consoles 页重新开一个 Bash 即可，文件不会丢 |
