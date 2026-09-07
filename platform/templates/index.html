@@ -52,13 +52,14 @@
             color: #aaa;
             font-weight: 400;
         }
-        /* 侧栏头部：Tools List 水平居中，收缩按钮绝对定位贴最右缘；上下对称 padding 保证垂直居中 */
+        /* 侧栏头部：固定高度，Tools List 与按钮共用同一垂直居中基准 */
         .side-head {
             position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 10px 0;
+            height: 50px;
+            padding: 0;
         }
         .side-head .group-title {
             font-size: 0.75rem;
@@ -70,8 +71,9 @@
         .side-toggle {
             position: absolute;
             right: 0;
-            top: 50%;
-            transform: translateY(-50%);
+            top: 0;
+            bottom: 0;
+            margin: auto 0;
             width: 30px;
             height: 30px;
             flex-shrink: 0;
