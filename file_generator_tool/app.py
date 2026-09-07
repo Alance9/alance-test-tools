@@ -238,103 +238,262 @@ case "$1" in
     *) echo "Usage: $0 {start|stop|restart|status}"; exit 1 ;;
 esac''',
     'groovy': r'''// =============================================
-// Jenkins Pipeline Groovy 脚本
+// Jenkins Pipeline：UI 自动化测试（Python + Selenium）
+// 流程：拉取代码 → 构建环境 → 运行自动化 → Allure 报告 → 多邮箱通知
 // =============================================
 
 pipeline {
     agent any
 
     environment {
-        APP_NAME = 'TestApp'
-        DOCKER_REGISTRY = 'registry.example.com'
-        KUBE_NAMESPACE = 'production'
+        // 项目与测试配置
+        PROJECT_NAME   = 'WebAutoTest'
+        PYTHON_VERSION = 'python3.10'
+        TEST_DIR       = 'tests'
+        ALLURE_DIR     = 'allure-results'
+        ALLURE_REPORT  = 'allure-report'
+        // 收件人列表（用逗号分隔）
+        MAIL_TO        = 'tester1@example.com,tester2@example.com,leader@example.com'
+    }
+
+    options {
+        timestamps()                          // 控制台输出带时间戳
+        timeout(time: 60, unit: 'MINUTES')    // 整体超时 60 分钟
+        buildDiscarder(logRotator(numToKeepStr: '20'))
     }
 
     stages {
-        stage('Checkout') {
+
+        // 1. 拉取代码
+        stage('拉取代码 Checkout') {
             steps {
-                echo '拉取代码...'
+                echo "====== 拉取代码（分支: ${env.BRANCH_NAME}）======"
                 checkout scm
+                sh 'git log --oneline -5'
             }
         }
 
-        stage('Build') {
+        // 2. 构建环境（Python 虚拟环境 + 依赖）
+        stage('构建环境 Setup') {
             steps {
-                echo '构建项目...'
-                sh 'mvn clean package -DskipTests'
+                echo '====== 构建 Python 环境 ======'
+                sh """
+                    ${PYTHON_VERSION} -m venv venv
+                    . venv/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
+                    pip install selenium pytest allure-pytest
+                    python -c "import selenium; print('selenium', selenium.__version__)"
+                """
             }
         }
 
-        stage('Test') {
+        // 3. 运行 Python + Selenium 自动化脚本
+        // catchError：测试失败不中断流水线，后续 Allure + 邮件阶段仍执行
+        stage('运行自动化 Run Tests') {
             steps {
-                echo '运行测试...'
-                sh 'mvn test'
+                echo '====== 运行 Selenium 自动化测试 ======'
+                catchError(buildResult: 'FAILURE', stageResult: 'UNSTABLE', message: '自动化测试执行失败') {
+                    sh """
+                        . venv/bin/activate
+                        mkdir -p ${ALLURE_DIR}
+                        pytest ${TEST_DIR} -s -q \
+                            --alluredir=${ALLURE_DIR} \
+                            --clean-alluredir \
+                            -v
+                    """
+                }
             }
             post {
                 always {
-                    junit '**/target/surefire-reports/*.xml'
+                    // 收集 pytest 的 junit 结果供 Jenkins 展示
+                    junit allowEmptyResults: true, testResults: '**/junit-*.xml'
                 }
             }
         }
 
-        stage('Docker Build & Push') {
+        // 4. 生成 Allure 报告（成功/失败都生成，便于排查）
+        stage('生成 Allure 报告') {
             steps {
-                echo '构建并推送 Docker 镜像...'
-                sh """
-                    docker build -t ${DOCKER_REGISTRY}/${APP_NAME}:${BUILD_NUMBER} .
-                    docker push ${DOCKER_REGISTRY}/${APP_NAME}:${BUILD_NUMBER}
-                    docker tag ${DOCKER_REGISTRY}/${APP_NAME}:${BUILD_NUMBER} ${DOCKER_REGISTRY}/${APP_NAME}:latest
-                    docker push ${DOCKER_REGISTRY}/${APP_NAME}:latest
-                """
+                echo '====== 生成 Allure 测试报告 ======'
+                catchError(buildResult: 'FAILURE', stageResult: 'UNSTABLE', message: 'Allure 报告生成失败') {
+                    sh """
+                        # 生成静态报告
+                        allure generate ${ALLURE_DIR} -o ${ALLURE_REPORT} --clean
+                        # 打包报告便于发送
+                        zip -r allure-report.zip ${ALLURE_REPORT}
+                        echo "报告目录: ${WORKSPACE}/${ALLURE_REPORT}"
+                    """
+                    // 在 Jenkins 中发布 Allure 报告（需安装 Allure Jenkins Plugin）
+                    allure includeProperties: false,
+                           jdk: '',
+                           results: [[path: '${ALLURE_DIR}']]
+                }
             }
         }
 
-        stage('Deploy to K8s') {
+        // 5. 发送报告到多个邮箱（成功/失败都发送）
+        stage('邮件通知 Notify') {
             steps {
-                echo '部署到 Kubernetes...'
-                sh """
-                    kubectl set image deployment/${APP_NAME} \
-                        ${APP_NAME}=${DOCKER_REGISTRY}/${APP_NAME}:${BUILD_NUMBER} \
-                        -n ${KUBE_NAMESPACE}
-                    kubectl rollout status deployment/${APP_NAME} \
-                        -n ${KUBE_NAMESPACE} --timeout=120s
-                """
-            }
-        }
-
-        stage('Verify') {
-            steps {
-                echo '验证部署...'
-                sh 'curl -s -o /dev/null -w "%{http_code}" http://${APP_NAME}.example.com/health'
+                echo "====== 发送报告到: ${MAIL_TO} ======"
+                script {
+                    def status = currentBuild.currentResult  // SUCCESS / FAILURE / UNSTABLE
+                    emailext (
+                        subject: "[${PROJECT_NAME}][${status}] 自动化测试报告 - 构建 #${BUILD_NUMBER}",
+                        body: """
+                            <h3>自动化测试执行结果</h3>
+                            <p>项目: ${PROJECT_NAME}</p>
+                            <p>状态: <b>${status}</b></p>
+                            <p>构建编号: #${BUILD_NUMBER}</p>
+                            <p>分支: ${env.BRANCH_NAME}</p>
+                            <p>触发人: ${env.BUILD_USER_ID}</p>
+                            <p>Allure 报告: <a href="${BUILD_URL}allure/">查看在线报告</a></p>
+                            <p>详细日志: <a href="${BUILD_URL}console">Console Output</a></p>
+                            <hr/>
+                            <p>此邮件由 Jenkins 自动发送，请勿回复。</p>
+                        """,
+                        to: "${MAIL_TO}",
+                        attachLog: true,
+                        attachmentsPattern: 'allure-report.zip',
+                        mimeType: 'text/html'
+                    )
+                }
             }
         }
     }
 
     post {
-        success { echo 'SUCCESS' }
-        failure { echo 'FAILED' }
+        success { echo '✅ 流水线执行成功' }
+        failure { echo '❌ 流水线执行失败（Allure 报告与邮件已发送）' }
+        always {
+            echo '====== 清理工作空间 ======'
+            sh 'rm -rf venv __pycache__ .pytest_cache'
+        }
     }
 }
-
+''',
+    'jmeter': r'''// =============================================
+// Groovy 在 JMeter 中的常用语法示例
+// 适用场景：JSR223 Sampler / PreProcessor / PostProcessor
+// 常用内置变量：prev / vars / props / log / ctx / sampler / data
 // =============================================
-// 单测示例
-// =============================================
-class UserServiceTest {
-    @Test
-    void testCreateUser() {
-        def user = new User(name: '张三', age: 25)
-        assert user.name == '张三'
-        assert user.age == 25
-    }
 
-    @Test
-    void testBatchGenerate() {
-        def users = (1..1000).collect { i ->
-            new User(name: "user_${i}", age: 18 + (i % 50))
-        }
-        assert users.size() == 1000
+// ========== 1. 变量读写（vars） ==========
+// vars：当前线程局部变量（String 存取），跨组件传参的核心
+vars.put('token', 'abc123')                     // 存字符串
+vars.put('count', '100')                        // 数字也要转字符串存
+def token = vars.get('token')                   // 取字符串
+def count = vars.get('count') as int            // 取并转 int
+vars.putObject('userList', [1, 2, 3])           // 存对象（List/Map 等）
+def list = vars.getObject('userList')           // 取对象
+
+// ========== 2. 全局属性读写（props） ==========
+// props：JMeter 全局属性，跨线程组共享
+props.put('global_token', 'xyz789')             // 存全局属性
+def globalToken = props.get('global_token')     // 取全局属性
+def threads = props.get('num_threads', '10')    // 带默认值取值
+
+// ========== 3. 获取响应内容与响应时间（prev） ==========
+// prev：上一个取样器的 SampleResult 对象
+def responseCode    = prev.getResponseCode()          // 响应码，如 '200'
+def responseMsg     = prev.getResponseMessage()       // 响应消息
+def responseData    = prev.getResponseDataAsString()  // 响应体（字符串）
+def responseTime    = prev.getTime()                  // 接口响应时间（毫秒）
+def latency         = prev.getLatency()               // 延迟时间（首字节时间）
+def bodySize        = prev.getBodySizeAsLong()        // 响应体大小（字节）
+def isSuccess       = prev.isSuccessful()             // 请求是否成功
+def responseHeaders = prev.getResponseHeaders()       // 响应头
+
+// 根据响应时间判断是否通过
+if (responseTime > 3000) {
+    prev.setSuccessful(false)
+    prev.setResponseMessage('响应超时：' + responseTime + 'ms')
+}
+
+// ========== 4. 提取 JSON 响应字段 ==========
+import groovy.json.JsonSlurper
+def json = new JsonSlurper().parseText(responseData)
+def userId = json.data.userId                    // 取嵌套字段
+def items  = json.data.items                     // 取数组
+def firstId = items[0].id                        // 取数组首元素字段
+vars.put('userId', userId.toString())            // 存入变量供后续请求使用
+
+// ========== 5. 正则提取响应内容 ==========
+import java.util.regex.Pattern
+def matcher = (responseData =~ /"order_id":"(\d+)"/)
+if (matcher.find()) {
+    def orderId = matcher.group(1)
+    vars.put('orderId', orderId)
+    log.info('提取到 orderId: ' + orderId)
+}
+
+// ========== 6. 传参：构造下一个请求的参数 ==========
+// 方式一：存到 vars，下一个 HTTP 请求用 ${varName} 引用
+vars.put('nextUserId', userId.toString())
+
+// 方式二：直接修改当前取样器参数（PreProcessor 中）
+sampler.addArgument('userId', userId.toString())   // 表单参数
+sampler.addArgument('token', token)
+
+// 方式三：修改 HTTP 请求头
+import org.apache.jmeter.protocol.http.control.Header
+sampler.getHeaderManager().add(new Header('Authorization', 'Bearer ' + token))
+
+// ========== 7. 日志输出（log） ==========
+log.info('普通信息日志')
+log.warn('警告日志')
+log.error('错误日志')
+log.debug('调试日志：responseTime = ' + responseTime + 'ms')
+
+// ========== 8. 上下文 ctx（线程上下文） ==========
+def threadNum    = ctx.getThreadNum()                // 当前线程编号（0 开始）
+def threadName   = ctx.getThread().getThreadName()   // 线程名
+def samplerName  = ctx.getCurrentSampler().getName()
+def isFirstThread = (threadNum == 0)                 // 是否第一个线程
+
+// ========== 9. 时间相关 ==========
+def now       = System.currentTimeMillis()            // 当前时间戳（毫秒）
+def date      = new Date().format('yyyy-MM-dd HH:mm:ss') // 格式化时间
+def startTime = prev.getStartTime()                   // 请求开始时间戳
+def endTime   = prev.getEndTime()                     // 请求结束时间戳
+
+// ========== 10. 常用工具：生成随机数据 ==========
+import org.apache.commons.lang3.RandomUtils
+import org.apache.commons.lang3.RandomStringUtils
+def randomInt = RandomUtils.nextInt(1, 100)                    // 1~99 随机整数
+def randomStr = RandomStringUtils.randomAlphanumeric(8)        // 8 位随机字母数字
+vars.put('randomInt', randomInt.toString())
+vars.put('randomStr', randomStr)
+
+// ========== 11. 完整示例：登录后提取 token 并传给后续请求 ==========
+// 【JSR223 PostProcessor】放在登录请求下
+try {
+    def resp = prev.getResponseDataAsString()
+    def obj  = new JsonSlurper().parseText(resp)
+
+    if (obj.code == 0 && obj.data?.token) {
+        vars.put('TOKEN', obj.data.token)
+        log.info('登录成功，token 已保存: ' + obj.data.token)
+    } else {
+        prev.setSuccessful(false)
+        prev.setResponseMessage('登录失败: ' + (obj.msg ?: '未知错误'))
+        log.error('登录失败，响应: ' + resp)
     }
-}''',
+} catch (Exception e) {
+    prev.setSuccessful(false)
+    prev.setResponseMessage('解析响应异常: ' + e.getMessage())
+    log.error('解析异常', e)
+}
+
+// ========== 12. 完整示例：统计接口响应时间并设阈值断言 ==========
+// 【JSR223 Assertion】
+def threshold = 2000  // 阈值 2 秒
+def rt = prev.getTime()
+if (rt > threshold) {
+    AssertionResult.setFailure(true)
+    AssertionResult.setFailureMessage('响应时间 ' + rt + 'ms 超过阈值 ' + threshold + 'ms')
+}
+''',
 }
 
 
@@ -535,8 +694,8 @@ def config_download():
         data = request.json
         fmt = data.get('format', 'json')
         content = CONFIG_EXAMPLES.get(fmt, '')
-        mime_map = {'json': 'application/json', 'yaml': 'text/yaml', 'yml': 'text/yaml', 'ini': 'text/plain', 'xml': 'application/xml', 'sh': 'text/x-shellscript', 'groovy': 'text/x-groovy', 'gradle': 'text/x-groovy'}
-        ext_map = {'sh': 'sh', 'groovy': 'groovy', 'gradle': 'gradle', 'yml': 'yml'}
+        mime_map = {'json': 'application/json', 'yaml': 'text/yaml', 'yml': 'text/yaml', 'ini': 'text/plain', 'xml': 'application/xml', 'sh': 'text/x-shellscript', 'groovy': 'text/x-groovy', 'gradle': 'text/x-groovy', 'jmx': 'application/xml'}
+        ext_map = {'sh': 'sh', 'groovy': 'groovy', 'gradle': 'gradle', 'yml': 'yml', 'jmeter': 'jmx'}
         ext = ext_map.get(fmt, fmt)
         return Response(content, mimetype=mime_map.get(ext, 'text/plain'), headers={'Content-Disposition': f'attachment; filename=application.{ext}'})
     except Exception as e:

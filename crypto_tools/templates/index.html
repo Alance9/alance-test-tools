@@ -21,15 +21,28 @@
         .card-title { font-size: 1.375rem; font-weight: 600; margin-bottom: 22px; color: #333; padding-bottom: 10px; border-bottom: 2px solid #ccc; }
         .form-group { margin-bottom: 18px; }
         .form-group label { display: block; margin-bottom: 8px; font-weight: 500; color: #444; font-size: 1rem; }
-        .form-group textarea, .form-group input, .form-group select { width: 100%; padding: 12px 14px; border: 2px solid #ccc; border-radius: 4px; font-size: 16px; transition: all 0.2s; background: #fff; color: #222; font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif; }
-        .form-group select {
+        .form-group textarea, .form-group input, .form-group select { width: 100%; padding: 12px 14px; border: 2px solid #ccc; border-radius: 4px; font-size: 16px; transition: all 0.2s; background-color: #fff; color: #222; font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif; }
+        /* 全局统一所有下拉框：隐藏默认箭头，使用统一 SVG 箭头 */
+        select {
             appearance: none; -webkit-appearance: none; -moz-appearance: none;
             background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
             background-repeat: no-repeat; background-position: right 14px center; background-size: 16px;
             padding-right: 40px;
+            background-color: #fff;
+            cursor: pointer;
+        }
+        /* 按钮组内的下拉框：补齐边框/内边距/字体，与 .form-group select 视觉统一 */
+        .btn-group select {
+            padding: 12px 40px 12px 14px;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+            color: #222;
+            font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+            transition: all 0.2s;
         }
         .form-group textarea { min-height: 120px; resize: vertical; }
-        .form-group textarea:focus, .form-group input:focus, .form-group select:focus { outline: none; border-color: #666; box-shadow: 0 0 0 2px rgba(102,102,102,0.1); }
+        .form-group textarea:focus, .form-group input:focus, .form-group select:focus, .btn-group select:focus { outline: none; border-color: #666; box-shadow: 0 0 0 2px rgba(102,102,102,0.1); }
         .btn { background: #444; color: #fff; border: none; padding: 12px 28px; border-radius: 4px; cursor: pointer; font-weight: 500; letter-spacing: 0.5px; transition: all 0.2s; font-size: 1rem; }
         .btn:hover { background: #333; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
         .btn-secondary { background: #f5f5f5; color: #555; border: 1px solid #ddd; }
@@ -73,7 +86,7 @@
                 <div class="card-title">哈希加密（不可逆）</div>
                 <div class="form-group"><label>输入内容</label><textarea id="hashInput" placeholder="输入要加密的文本..."></textarea></div>
                 <div class="btn-group">
-                    <select id="hashAlgo" style="padding:12px 40px 12px 14px;">
+                    <select id="hashAlgo">
                         <option value="md5">MD5 (32位)</option>
                         <option value="sha1">SHA-1 (40位)</option>
                         <option value="sha256">SHA-256 (64位)</option>
@@ -93,7 +106,7 @@
                     <div class="form-group"><label>IV（可选，CBC模式）</label><input type="text" id="aesIv" placeholder="16字节，留空自动生成"></div>
                 </div>
                 <div class="btn-group">
-                    <select id="aesMode" style="padding:12px 40px 12px 14px;">
+                    <select id="aesMode">
                         <option value="CBC">CBC 模式</option>
                         <option value="ECB">ECB 模式</option>
                     </select>
@@ -151,11 +164,11 @@
             <div id="keygen" class="tab-content">
                 <div class="card-title">密钥生成</div>
                 <div class="btn-group" style="margin-bottom:18px;">
-                    <select id="keyType" style="padding:12px 40px 12px 14px;">
+                    <select id="keyType">
                         <option value="aes">AES 密钥</option>
                         <option value="rsa">RSA 密钥对</option>
                     </select>
-                    <select id="keyLen" style="padding:12px 40px 12px 14px;">
+                    <select id="keyLen">
                         <option value="16">AES-128 (16字节)</option>
                         <option value="24">AES-192 (24字节)</option>
                         <option value="32" selected>AES-256 (32字节)</option>

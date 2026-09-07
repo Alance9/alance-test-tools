@@ -138,7 +138,8 @@
                         <option value="ini">INI</option>
                         <option value="xml">XML</option>
                         <option value="sh">Shell</option>
-                        <option value="groovy">Groovy/Jmeter</option>
+                        <option value="groovy">Groovy/Jenkins</option>
+                        <option value="jmeter">Groovy/Jmeter</option>
                     </select>
                 </div>
                 <div class="btn-group">
@@ -248,7 +249,7 @@
             const r = await fetch('api/config/download', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ format: fmt }) });
             const blob = await r.blob();
             const a = document.createElement('a');
-            const ext = fmt === 'groovy' ? 'groovy' : (fmt === 'sh' ? 'sh' : fmt);
+            const ext = fmt === 'groovy' ? 'groovy' : (fmt === 'sh' ? 'sh' : (fmt === 'jmeter' ? 'jmx' : fmt));
             a.href = URL.createObjectURL(blob);
             a.download = `application.${ext}`;
             a.click();
