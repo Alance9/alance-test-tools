@@ -52,11 +52,11 @@
             color: #aaa;
             font-weight: 400;
         }
-        /* 侧栏头部（Tools List + 收缩按钮） */
+        /* 侧栏头部：Tools List 居中，收缩按钮紧随其右侧 */
         .side-head {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
             padding: 8px 14px 12px;
         }
         .side-head .group-title {
@@ -65,16 +65,17 @@
             letter-spacing: 1px;
             text-transform: uppercase;
         }
-        /* 收缩/展开按钮（« 收起 / » 展开） */
+        /* 收缩/展开按钮（« 收起 / » 展开），样式沿用原汉堡按钮 */
         .side-toggle {
-            width: 26px;
-            height: 26px;
+            width: 34px;
+            height: 34px;
             flex-shrink: 0;
-            background: #fff;
+            margin-left: 8px;
+            background: transparent;
             border: 1px solid #ccc;
             border-radius: 4px;
             color: #444;
-            font-size: 14px;
+            font-size: 18px;
             line-height: 1;
             cursor: pointer;
             display: flex;
@@ -233,6 +234,13 @@
         body.side-collapsed .side-toggle .ico-collapse { display: none; }
         body.side-collapsed .side-toggle .ico-expand { display: inline; }
 
+        /* ===== 菜单栏细滚动条（弱化不明显） ===== */
+        .sidebar { scrollbar-width: thin; scrollbar-color: #ddd transparent; }
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-track { background: transparent; }
+        .sidebar::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
+        .sidebar::-webkit-scrollbar-thumb:hover { background: #ccc; }
+
         /* ===== 右侧功能区 ===== */
         .content {
             flex: 1;
@@ -268,13 +276,13 @@
 
             /* 抽屉展开时恢复完整菜单（覆盖收缩态，源码在后同权重胜出） */
             body.side-open .group-title { display: block; }
-            body.side-open .menu-name { display: inline; }
+            body.side-collapsed.side-open .menu-item .menu-name { display: inline; }
+            body.side-collapsed.side-open .menu-item.active { border-left-color: #999; }
             body.side-open .menu-item {
                 justify-content: flex-start;
                 padding: 14px 20px;
                 border-left: 3px solid transparent;
             }
-            body.side-open .side-head { justify-content: space-between; padding: 8px 14px 12px; }
             body.side-collapsed.side-open .side-toggle .ico-collapse { display: inline; }
             body.side-collapsed.side-open .side-toggle .ico-expand { display: none; }
 
