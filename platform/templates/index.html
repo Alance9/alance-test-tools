@@ -52,24 +52,37 @@
             color: #aaa;
             font-weight: 400;
         }
-        /* 菜单展开/收起按钮（汉堡） */
-        .menu-toggle {
-            width: 34px;
-            height: 34px;
-            margin-right: 14px;
+        /* 侧栏头部（Tools List + 收缩按钮） */
+        .side-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 14px 12px;
+        }
+        .side-head .group-title {
+            font-size: 0.75rem;
+            color: #999;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        /* 收缩/展开按钮（« 收起 / » 展开） */
+        .side-toggle {
+            width: 26px;
+            height: 26px;
             flex-shrink: 0;
-            background: transparent;
-            border: 1px solid #666;
+            background: #fff;
+            border: 1px solid #ccc;
             border-radius: 4px;
-            color: #fff;
-            font-size: 18px;
+            color: #444;
+            font-size: 14px;
             line-height: 1;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        .menu-toggle:hover { background: #3a3a3a; }
+        .side-toggle:hover { background: #eee; border-color: #999; }
+        .side-toggle .ico-expand { display: none; }
 
         /* 移动端抽屉菜单遮罩 */
         .mask {
@@ -173,18 +186,9 @@
             background: #fafafa;
             border-right: 1px solid #e0e0e0;
             overflow-y: auto;
+            overflow-x: hidden;
             padding: 14px 0;
-            transition: margin-left 0.2s ease;
-        }
-        /* 桌面端收起：向左滑出 */
-        body.side-hidden .sidebar { margin-left: -230px; }
-        .sidebar .group-title {
-            text-align: center;
-            padding: 10px 24px 14px;
-            font-size: 0.75rem;
-            color: #999;
-            letter-spacing: 1px;
-            text-transform: uppercase;
+            transition: width 0.2s ease;
         }
         .menu-item {
             display: flex;
@@ -216,6 +220,19 @@
         }
         .menu-item.active .idx { color: #ccc; }
 
+        /* ===== 收缩态：极简窄条（按钮 + 01、02... 序号） ===== */
+        body.side-collapsed .sidebar { width: 52px; padding: 10px 0; }
+        body.side-collapsed .side-head { justify-content: center; padding: 2px 0 10px; }
+        body.side-collapsed .group-title { display: none; }
+        body.side-collapsed .menu-item {
+            justify-content: center;
+            padding: 13px 0;
+            border-left: none;
+        }
+        body.side-collapsed .menu-item .menu-name { display: none; }
+        body.side-collapsed .side-toggle .ico-collapse { display: none; }
+        body.side-collapsed .side-toggle .ico-expand { display: inline; }
+
         /* ===== 右侧功能区 ===== */
         .content {
             flex: 1;
@@ -235,24 +252,34 @@
             .header h1 { font-size: 1rem; letter-spacing: 0; }
             .header .sub { display: none; }
 
-            /* 侧栏变为抽屉：默认隐藏，点汉堡滑出 */
+            /* 侧栏常驻为收缩窄条；side-open 时滑出完整抽屉 */
             .sidebar {
                 position: fixed;
                 top: 60px;
                 left: 0;
                 bottom: 0;
                 z-index: 50;
-                margin-left: 0;
-                transform: translateX(-100%);
-                transition: transform 0.2s ease;
-                box-shadow: 2px 0 8px rgba(0,0,0,0.15);
-                width: 240px;
+                width: 52px;
+                border-right: none;
+                box-shadow: 1px 0 4px rgba(0,0,0,0.08);
             }
-            body.side-hidden .sidebar { margin-left: 0; }
-            body.sidebar-open .sidebar { transform: translateX(0); }
-            body.sidebar-open .mask { display: block; }
+            body.side-open .sidebar { width: 240px; box-shadow: 2px 0 8px rgba(0,0,0,0.15); }
+            body.side-open .mask { display: block; }
 
-            .menu-item { padding: 14px 20px; }
+            /* 抽屉展开时恢复完整菜单（覆盖收缩态，源码在后同权重胜出） */
+            body.side-open .group-title { display: block; }
+            body.side-open .menu-name { display: inline; }
+            body.side-open .menu-item {
+                justify-content: flex-start;
+                padding: 14px 20px;
+                border-left: 3px solid transparent;
+            }
+            body.side-open .side-head { justify-content: space-between; padding: 8px 14px 12px; }
+            body.side-collapsed.side-open .side-toggle .ico-collapse { display: inline; }
+            body.side-collapsed.side-open .side-toggle .ico-expand { display: none; }
+
+            /* 内容区为常驻窄条让位 */
+            .content { margin-left: 52px; }
 
             /* 门禁卡片小屏自适应 */
             .gate-card {
@@ -266,7 +293,6 @@
 <body>
     <!-- 顶部标题栏 -->
     <div class="header">
-        <button class="menu-toggle" onclick="toggleSidebar()" aria-label="切换菜单">☰</button>
         <div class="logo">A</div>
         <h1>Alance 测试工具平台</h1>
         <span class="sub">Test Tools Platform</span>
@@ -279,13 +305,17 @@
     <div class="main">
         <!-- 左侧 Tab 菜单 -->
         <div class="sidebar">
-            <div class="group-title">Tools List</div>
+            <div class="side-head">
+                <span class="group-title">Tools List</span>
+                <button class="side-toggle" onclick="toggleSidebar()" aria-label="展开或收起菜单"><span class="ico-collapse">«</span><span class="ico-expand">»</span></button>
+            </div>
             {% for item in menu %}
             <div class="menu-item{% if loop.first %} active{% endif %}"
                  data-key="{{ item.key }}"
+                 title="{{ item.name }}"
                  onclick="switchTool('{{ item.key }}', this)">
                 <span class="idx">{{ '%02d'|format(loop.index) }}</span>
-                <span>{{ item.name }}</span>
+                <span class="menu-name">{{ item.name }}</span>
             </div>
             {% endfor %}
         </div>
@@ -349,27 +379,39 @@
         }
 
         /**
-         * 展开/收起左侧菜单：桌面端贴边滑出，移动端抽屉+遮罩
+         * 展开/收起左侧菜单：
+         * 桌面端 切换 side-collapsed（完整菜单 ↔ 极简窄条）
+         * 移动端 切换 side-open（常驻窄条 ↔ 完整抽屉+遮罩）
          */
         function toggleSidebar() {
             if (isMobile()) {
-                document.body.classList.toggle('sidebar-open');
+                document.body.classList.toggle('side-open');
             } else {
-                document.body.classList.toggle('side-hidden');
+                document.body.classList.toggle('side-collapsed');
             }
         }
 
         /**
-         * 关闭移动端抽屉菜单（点遮罩或选中菜单后调用）
+         * 关闭移动端抽屉菜单（点遮罩或选中菜单后调用，回到常驻窄条）
          */
         function closeSidebar() {
-            document.body.classList.remove('sidebar-open');
+            document.body.classList.remove('side-open');
         }
 
-        // 跨断点时清理状态，避免桌面收起态残留到移动端
-        window.addEventListener('resize', () => {
-            if (!isMobile()) closeSidebar();
-        });
+        /**
+         * 按当前视口套用默认状态：
+         * 移动端常驻收缩窄条（side-collapsed），桌面端默认展开
+         */
+        function applyViewportState() {
+            if (isMobile()) {
+                document.body.classList.add('side-collapsed');
+                document.body.classList.remove('side-open');
+            } else {
+                document.body.classList.remove('side-open');
+            }
+        }
+        applyViewportState();
+        window.addEventListener('resize', applyViewportState);
 
         /**
          * 切换左侧菜单：更新选中态并加载对应工具页面
