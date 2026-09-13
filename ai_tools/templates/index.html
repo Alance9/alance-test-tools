@@ -34,15 +34,11 @@
             color: #333;
             white-space: nowrap;
         }
-        .bar .tip {
-            font-size: 0.75rem;
-            color: #999;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
         .bar .actions { margin-left: auto; display: flex; gap: 8px; flex-shrink: 0; }
         .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             border: 1px solid #999;
             background: #fff;
             color: #333;
@@ -52,16 +48,18 @@
             cursor: pointer;
             white-space: nowrap;
             font-family: inherit;
+            text-decoration: none;
+            line-height: 1.2;
         }
         .btn:hover { border-color: #444; }
         .btn.primary { background: #444; border-color: #444; color: #fff; }
         .btn.primary:hover { background: #333; }
 
-        /* ===== 智能体内嵌区 ===== */
+        /* ===== 智能体内嵌区：直接内嵌 Coze URL，不加任何遮挡层 ===== */
         .frame-wrap { flex: 1; min-height: 0; }
         .frame-wrap iframe { width: 100%; height: 100%; border: none; display: block; }
 
-        /* ===== 轻量提示：仅弹窗被浏览器拦截时出现，数秒后自动消失 ===== */
+        /* ===== 轻量提示：仅新开窗口被浏览器拦截时出现，5 秒后自动消失 ===== */
         .toast {
             display: none;
             position: fixed;
@@ -83,6 +81,7 @@
         @media (max-width: 768px) {
             .bar { padding: 0 10px; height: 48px; gap: 8px; }
             .btn { padding: 6px 12px; }
+            .toast { font-size: 0.75rem; padding: 8px 14px; max-width: 90vw; white-space: normal; text-align: center; }
         }
     </style>
 </head>
@@ -91,39 +90,48 @@
     <div class="bar">
         <span class="title">测试智能体</span>
         <div class="actions">
-            <button class="btn primary" onclick="openInNewTab()">新标签页访问</button>
-            <button class="btn" onclick="reloadFrame()">刷新</button>
+            <!-- 原生 target=_blank 链接：用户手势内导航，任何嵌套层级都不会被弹窗拦截 -->
+            <a class="btn primary"
+               href="https://www.coze.cn/store/agent/7682838870320431113?bot_id=true"
+               target="_blank" rel="noopener noreferrer">新标签页访问</a>
+            <button class="btn" type="button" onclick="reloadFrame()">刷新</button>
         </div>
     </div>
 
-    <!-- 智能体内嵌区 -->
+    <!-- 智能体内嵌区：直接访问 Coze URL，无遮挡，页面可正常交互 -->
     <div class="frame-wrap">
-        <!-- 直接内嵌 Coze 商店 bot 页，页面内可正常交互 -->
+        <!--
+            sandbox 作用（实测有效，不改变访问 URL 与页面交互）：
+            - allow-popups / allow-popups-to-escape-sandbox：Coze 的登录弹窗可正常弹出；
+            - 火山 SSO 在 sandboxed frame 中可正常渲染登录页，不再出现
+              "signin.volcengine.com 拒绝了我们的连接请求"；
+            - 不给 allow-top-navigation：禁止内嵌页劫持外层平台窗口。
+        -->
         <iframe id="agentFrame"
                 src="https://www.coze.cn/store/agent/7682838870320431113?bot_id=true"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals"
                 referrerpolicy="no-referrer-when-downgrade"
                 title="测试智能体"></iframe>
     </div>
 
-    <!-- 弹窗被拦截时的轻量提示（自动消失，不阻断操作） -->
+    <!-- 新开窗口被拦截时的轻量提示（自动消失） -->
     <div class="toast" id="toast"></div>
 
     <script>
-        /** 智能体页面地址（Coze 商店 bot 页）：iframe 常驻展示、新窗口打开均用此地址 */
+        /** 智能体页面地址（Coze 商店 bot 页） */
         const AGENT_URL = 'https://www.coze.cn/store/agent/7682838870320431113?bot_id=true';
 
         const frame = document.getElementById('agentFrame');
         const toast = document.getElementById('toast');
         let toastTimer = null;
-        /** iframe 整页加载计数：第 1 次为 Coze 本体；其站内操作是 SPA，不触发整页 load */
+        /** 整页加载计数：第 1 次为 Coze 本体；其站内操作是 SPA 不触发整页 load */
         let loadCount = 0;
-        /** 一次登录异常只处理一轮，防止多次 load 重复弹窗 */
+        /** 第 1 次整页加载的时间戳，用于排除页面初始阶段的重定向 */
+        let firstLoadAt = 0;
+        /** 一次异常只处理一轮，防止多次 load 重复开窗/刷新 */
         let handling = false;
-        /** 用户是否在内嵌页上点击过（跨域下父文档仍能收到 iframe 元素的 pointerdown），
-         *  仅在交互后武装检测，避免页面初始重定向造成误判 */
-        let interacted = false;
 
-        /** 显示数秒后自动消失的轻量提示 */
+        /** 显示 5 秒后自动消失的轻量提示 */
         function showToast(text) {
             toast.textContent = text;
             toast.classList.add('show');
@@ -132,48 +140,41 @@
         }
 
         /**
-         * 顶层新窗口打开智能体固定地址。
-         * @returns {Window|null} 新窗口引用；为 null 表示被浏览器拦截
-         */
-        function openInNewTab() {
-            const win = window.open(AGENT_URL, '_blank', 'noopener');
-            if (!win) {
-                showToast('登录窗口被浏览器拦截，请点击右上角【新标签页访问】');
-            }
-            return win;
-        }
-
-        /**
-         * 重新加载内嵌页到固定 URL：先置空再赋回，强制刷新。
-         * 同时重置加载计数与处理标记，恢复检测能力。
+         * 重新加载内嵌页到固定 URL：先置空再赋回，强制刷新，
+         * 并重置检测状态。about:blank 的 load 事件不计入。
          */
         function reloadFrame() {
             handling = false;
             loadCount = 0;
-            interacted = false;
+            firstLoadAt = 0;
             frame.src = 'about:blank';
             setTimeout(() => { frame.src = AGENT_URL; }, 60);
         }
 
-        /* 记录用户在内嵌区域的点击（点"开始使用"等），用于武装异常检测 */
-        frame.addEventListener('pointerdown', () => { interacted = true; });
-
         /**
-         * 检测内嵌登录异常并自动处理：
-         * - 第 1 次整页 load：Coze 页面本体正常加载
-         * - 用户交互后出现第 2 次整页 load：Coze 正常使用是 SPA 不会整页跳转，
-         *   只可能是点"开始使用"后内嵌跳转到了 signin.volcengine.com，
-         *   被其 CSP frame-ancestors 拦截（页面显示"拒绝了我们的连接请求"）。
-         *   此时自动：① 新开窗口打开 URL（距用户点击通常仍在浏览器瞬态激活
-         *   窗口内，弹窗可放行；顶层导航不受 frame-ancestors 限制）；
-         *   ② 重新刷新内嵌页回到智能体。若弹窗被拦截，toast 提示用右上角按钮。
+         * 登录异常自动处理：
+         * Coze 正常使用是 SPA，站内点击不产生整页加载；点"开始使用"后若
+         * 内嵌整页跳转到 signin.volcengine.com（弹窗被拦后的回退跳转，
+         * 未加 sandbox 时会显示"拒绝连接"），必然产生第 2 次整页 load。
+         * 此时：① 尝试新开窗口打开智能体（距用户点击很近，多数浏览器放行；
+         * 被拦则 toast 引导用右上角按钮）；② 立即把内嵌页刷新回智能体 URL。
+         * 首屏 2 秒内的多次 load 视为初始重定向，不处理。
          */
         frame.addEventListener('load', () => {
             if (frame.src === 'about:blank') return;
             loadCount++;
-            if (loadCount < 2 || handling || !interacted) return;
+            if (loadCount === 1) {
+                firstLoadAt = Date.now();
+                return;
+            }
+            if (handling) return;
+            if (firstLoadAt && Date.now() - firstLoadAt < 2000) return;
             handling = true;
-            openInNewTab();
+
+            const win = window.open(AGENT_URL, '_blank', 'noopener');
+            if (!win) {
+                showToast('新窗口被浏览器拦截，请点击右上角【新标签页访问】登录');
+            }
             reloadFrame();
         });
     </script>
