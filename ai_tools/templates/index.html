@@ -58,23 +58,26 @@
         .btn.primary:hover { background: #333; }
 
         /* ===== 智能体内嵌区 ===== */
-        .frame-wrap { flex: 1; min-height: 0; position: relative; }
+        .frame-wrap { flex: 1; min-height: 0; }
         .frame-wrap iframe { width: 100%; height: 100%; border: none; display: block; }
 
-        /*
-         * 透明点击捕获层：常驻覆盖在 iframe 上。
-         * 用户视觉上点击的是 Coze 的"开始使用"，实际点击被本层捕获，
-         * 以用户手势在顶层新窗口打开链接（弹窗不会被拦截），
-         * 避免 Coze 异步弹窗被拦后回退 iframe 内跳转 SSO 被 CSP 拒绝。
-         * 无论登录与否，内嵌页始终展示固定 URL，本层始终生效。
-         */
-        #clickGuard {
-            position: absolute;
-            inset: 0;
-            z-index: 10;
-            background: transparent;
-            cursor: pointer;
+        /* ===== 轻量提示：仅弹窗被浏览器拦截时出现，数秒后自动消失 ===== */
+        .toast {
+            display: none;
+            position: fixed;
+            top: 64px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 99;
+            background: rgba(51,51,51,0.92);
+            color: #fff;
+            font-size: 0.8125rem;
+            padding: 10px 20px;
+            border-radius: 6px;
+            white-space: nowrap;
+            pointer-events: none;
         }
+        .toast.show { display: block; }
 
         /* ===== 小屏：按钮紧凑 ===== */
         @media (max-width: 768px) {
@@ -95,51 +98,84 @@
 
     <!-- 智能体内嵌区 -->
     <div class="frame-wrap">
-        <!--
-            sandbox 不给 allow-top-navigation：禁止内嵌页劫持外层平台窗口跳转；
-            登录弹窗即便能弹出也在新窗口（allow-popups）
-        -->
+        <!-- 直接内嵌 Coze 商店 bot 页，页面内可正常交互 -->
         <iframe id="agentFrame"
                 src="https://www.coze.cn/store/agent/7682838870320431113?bot_id=true"
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals"
                 referrerpolicy="no-referrer-when-downgrade"
                 title="测试智能体"></iframe>
-        <!-- 透明捕获层：常驻盖在 iframe 上，点击任意位置（如"开始使用"）即新窗口打开智能体 -->
-        <div id="clickGuard" title="点击在新窗口打开并登录"></div>
     </div>
+
+    <!-- 弹窗被拦截时的轻量提示（自动消失，不阻断操作） -->
+    <div class="toast" id="toast"></div>
 
     <script>
         /** 智能体页面地址（Coze 商店 bot 页）：iframe 常驻展示、新窗口打开均用此地址 */
         const AGENT_URL = 'https://www.coze.cn/store/agent/7682838870320431113?bot_id=true';
 
         const frame = document.getElementById('agentFrame');
-        const guard = document.getElementById('clickGuard');
+        const toast = document.getElementById('toast');
+        let toastTimer = null;
+        /** iframe 整页加载计数：第 1 次为 Coze 本体；其站内操作是 SPA，不触发整页 load */
+        let loadCount = 0;
+        /** 一次登录异常只处理一轮，防止多次 load 重复弹窗 */
+        let handling = false;
+        /** 用户是否在内嵌页上点击过（跨域下父文档仍能收到 iframe 元素的 pointerdown），
+         *  仅在交互后武装检测，避免页面初始重定向造成误判 */
+        let interacted = false;
+
+        /** 显示数秒后自动消失的轻量提示 */
+        function showToast(text) {
+            toast.textContent = text;
+            toast.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toast.classList.remove('show'), 5000);
+        }
 
         /**
          * 顶层新窗口打开智能体固定地址。
-         * 捕获层点击（点"开始使用"）与右上角"新标签页访问"按钮共用此逻辑。
+         * @returns {Window|null} 新窗口引用；为 null 表示被浏览器拦截
          */
         function openInNewTab() {
-            window.open(AGENT_URL, '_blank', 'noopener');
+            const win = window.open(AGENT_URL, '_blank', 'noopener');
+            if (!win) {
+                showToast('登录窗口被浏览器拦截，请点击右上角【新标签页访问】');
+            }
+            return win;
         }
 
         /**
-         * 透明捕获层常驻：iframe 内 Coze 页面的任何点击都被本层拦截。
-         * 用户视觉上点的是"开始使用"，实际以用户直接手势在顶层新窗口
-         * 打开智能体（window.open 在点击手势内不会被浏览器拦截），
-         * 新窗口为顶层导航，不受 SSO frame-ancestors 限制，可正常登录。
-         * 不做任何自动重载：登录完成与否，内嵌页始终保持原 URL 展示。
-         */
-        guard.addEventListener('click', openInNewTab);
-
-        /**
-         * 手动刷新：先置空再赋回固定 URL，强制 iframe 重新加载；
-         * 捕获层保持常驻，刷新后点击行为不变
+         * 重新加载内嵌页到固定 URL：先置空再赋回，强制刷新。
+         * 同时重置加载计数与处理标记，恢复检测能力。
          */
         function reloadFrame() {
+            handling = false;
+            loadCount = 0;
+            interacted = false;
             frame.src = 'about:blank';
             setTimeout(() => { frame.src = AGENT_URL; }, 60);
         }
+
+        /* 记录用户在内嵌区域的点击（点"开始使用"等），用于武装异常检测 */
+        frame.addEventListener('pointerdown', () => { interacted = true; });
+
+        /**
+         * 检测内嵌登录异常并自动处理：
+         * - 第 1 次整页 load：Coze 页面本体正常加载
+         * - 用户交互后出现第 2 次整页 load：Coze 正常使用是 SPA 不会整页跳转，
+         *   只可能是点"开始使用"后内嵌跳转到了 signin.volcengine.com，
+         *   被其 CSP frame-ancestors 拦截（页面显示"拒绝了我们的连接请求"）。
+         *   此时自动：① 新开窗口打开 URL（距用户点击通常仍在浏览器瞬态激活
+         *   窗口内，弹窗可放行；顶层导航不受 frame-ancestors 限制）；
+         *   ② 重新刷新内嵌页回到智能体。若弹窗被拦截，toast 提示用右上角按钮。
+         */
+        frame.addEventListener('load', () => {
+            if (frame.src === 'about:blank') return;
+            loadCount++;
+            if (loadCount < 2 || handling || !interacted) return;
+            handling = true;
+            openInNewTab();
+            reloadFrame();
+        });
     </script>
 </body>
 </html>
