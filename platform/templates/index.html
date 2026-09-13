@@ -235,6 +235,51 @@
         }
         .menu-item.active .idx { color: #ccc; }
 
+        /* ===== 分组主菜单（主菜单 → 子菜单两级结构） ===== */
+        /* V 形箭头：border 绘制，展开朝下、收起朝右 */
+        .menu-item .arrow {
+            margin-left: auto;
+            width: 8px;
+            height: 8px;
+            border-right: 2px solid #999;
+            border-bottom: 2px solid #999;
+            transform: rotate(45deg);
+            transition: transform 0.2s;
+            margin-right: 4px;
+            flex-shrink: 0;
+        }
+        .menu-group:not(.expanded) .group-head .arrow { transform: rotate(-45deg); }
+        /* 联动：组收起时子菜单同步隐藏 */
+        .menu-group:not(.expanded) .sub-item { display: none; }
+        /* 子菜单：缩进 + 弱化样式 */
+        .menu-item.sub-item {
+            padding: 11px 24px 11px 46px;
+            font-size: 0.875rem;
+            color: #555;
+        }
+        .menu-item.sub-item::before {
+            content: '';
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: #aaa;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+        .menu-item.sub-item.active {
+            background: #444;
+            color: #fff;
+            border-left-color: #999;
+            font-weight: 500;
+        }
+        .menu-item.sub-item.active::before { background: #fff; }
+        /* 简写标签（- 01）：仅窄条模式显示，默认隐藏 */
+        .sub-item .strip-label { display: none; color: #aaa; font-size: 0.8125rem; }
+        .menu-item.sub-item.active .strip-label { color: #ccc; }
+        /* 收缩窄条：隐藏子菜单与箭头，仅保留组序号 */
+        body.side-collapsed .sub-item { display: none; }
+        body.side-collapsed .menu-item .arrow { display: none; }
+
         /* ===== 收缩态：极简窄条（按钮 + 01、02... 序号） ===== */
         body.side-collapsed .sidebar { width: 52px; padding: 10px 0; }
         body.side-collapsed .side-head { justify-content: center; padding: 2px 0 10px; }
@@ -299,6 +344,20 @@
                 padding: 14px 20px;
                 border-left: 3px solid transparent;
             }
+            /* 抽屉展开时恢复组子菜单与箭头 */
+            body.side-collapsed.side-open .sub-item { display: flex; padding: 12px 20px 12px 42px; }
+            body.side-collapsed.side-open .menu-item .arrow { display: block; }
+            /* 抽屉内联动：组收起时子菜单保持隐藏（权重高于上一条恢复规则） */
+            body.side-collapsed.side-open .menu-group:not(.expanded) .sub-item { display: none; }
+
+            /* 移动端窄条（未开抽屉）：组展开时子菜单以简写 - 01 显示在序号下方 */
+            body.side-collapsed:not(.side-open) .menu-group.expanded .sub-item {
+                display: flex;
+                justify-content: center;
+                padding: 11px 0;
+            }
+            body.side-collapsed:not(.side-open) .sub-item::before { display: none; }
+            body.side-collapsed:not(.side-open) .sub-item .strip-label { display: inline; }
 
             /* 内容区为常驻窄条让位 */
             .content { margin-left: 52px; }
@@ -334,6 +393,26 @@
                 </button>
             </div>
             {% for item in menu %}
+            {% if item.children %}
+            <!-- 分组主菜单：默认收起，点击展开/收起子菜单 -->
+            <div class="menu-group">
+                <div class="menu-item group-head" title="{{ item.name }}" onclick="toggleGroup(this)">
+                    <span class="idx">{{ '%02d'|format(loop.index) }}</span>
+                    <span class="menu-name">{{ item.name }}</span>
+                    <span class="arrow"></span>
+                </div>
+                {% for child in item.children %}
+                <!-- 子菜单：窄条收起态显示简写 - 01，点击加载内部工具 /t/<key>/ -->
+                <div class="menu-item sub-item"
+                     data-key="{{ child.key }}"
+                     title="{{ child.name }}"
+                     onclick="switchTool('{{ child.key }}', this)">
+                    <span class="strip-label">- {{ '%02d'|format(loop.index) }}</span>
+                    <span class="menu-name">{{ child.name }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
             <div class="menu-item{% if loop.first %} active{% endif %}"
                  data-key="{{ item.key }}"
                  title="{{ item.name }}"
@@ -341,6 +420,7 @@
                 <span class="idx">{{ '%02d'|format(loop.index) }}</span>
                 <span class="menu-name">{{ item.name }}</span>
             </div>
+            {% endif %}
             {% endfor %}
         </div>
 
@@ -438,7 +518,7 @@
         window.addEventListener('resize', applyViewportState);
 
         /**
-         * 切换左侧菜单：更新选中态并加载对应工具页面
+         * 切换左侧菜单：更新选中态并加载对应工具页面（普通工具与组子菜单通用）
          * @param {string} key - 工具挂载 key
          * @param {HTMLElement} el - 被点击的菜单项
          */
@@ -448,6 +528,14 @@
             el.classList.add('active');
             document.getElementById('toolFrame').src = '/t/' + key + '/';
             closeSidebar();
+        }
+
+        /**
+         * 展开/收起分组主菜单的子菜单
+         * @param {HTMLElement} head - 组标题菜单项（group-head）
+         */
+        function toggleGroup(head) {
+            head.parentElement.classList.toggle('expanded');
         }
     </script>
 </body>

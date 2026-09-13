@@ -31,6 +31,17 @@ TOOLS = [
     ('apigen',  'api_generator',      'API 造数'),
 ]
 
+# 分组主菜单：主菜单可展开/收起，子项仍是挂载在 /t/<key>/ 的内部工具。
+# children: (挂载key, 工具目录名, 子菜单显示名)
+TOOL_GROUPS = [
+    {
+        'name': 'AI 工具',
+        'children': [
+            ('ai', 'ai_tools', '测试智能体'),
+        ],
+    },
+]
+
 
 def load_tool_app(key, dirname):
     """以唯一模块名动态加载单个工具的 app.py，返回其 Flask 实例。
@@ -62,8 +73,16 @@ root_app.jinja_env.auto_reload = True
 
 @root_app.route('/')
 def index():
-    """渲染平台主页面：header + 左侧菜单 + 右侧 iframe 功能区"""
+    """渲染平台主页面：header + 左侧菜单 + 右侧 iframe 功能区
+
+    菜单 = 普通工具（{key,name}）+ 分组主菜单（{name,children:[{key,name}]}）
+    """
     menu = [{'key': k, 'name': n} for k, _, n in TOOLS]
+    for group in TOOL_GROUPS:
+        menu.append({
+            'name': group['name'],
+            'children': [{'key': k, 'name': n} for k, _, n in group['children']],
+        })
     return render_template('index.html', menu=menu)
 
 
@@ -90,12 +109,20 @@ def favicon_png():
 
 
 def build_app():
-    """加载全部工具并构建 DispatcherMiddleware 合并应用"""
+    """加载全部工具（普通工具 + 分组菜单的子工具）并构建合并应用"""
     mounts = {}
-    for key, dirname, name in TOOLS:
+
+    def mount(key, dirname, name):
+        """加载并挂载单个工具到 /t/<key>/"""
         sub_app = load_tool_app(key, dirname)
         mounts['/t/' + key] = sub_app
         print(f'[挂载] /t/{key:<8} -> {dirname:<20} {name}')
+
+    for key, dirname, name in TOOLS:
+        mount(key, dirname, name)
+    for group in TOOL_GROUPS:
+        for key, dirname, name in group['children']:
+            mount(key, dirname, name)
     return DispatcherMiddleware(root_app, mounts)
 
 

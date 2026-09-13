@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试智能体</title>
+    <style>
+        /* ===== 全局：全屏布局（顶部工具条 + 智能体 iframe） ===== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+            background: #fff;
+            color: #222;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ===== 顶部工具条 ===== */
+        .bar {
+            flex-shrink: 0;
+            height: 52px;
+            display: flex;
+            align-items: center;
+            padding: 0 18px;
+            background: #fafafa;
+            border-bottom: 2px solid #e0e0e0;
+            gap: 12px;
+        }
+        .bar .title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #333;
+            white-space: nowrap;
+        }
+        .bar .tip {
+            font-size: 0.75rem;
+            color: #999;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .bar .actions { margin-left: auto; display: flex; gap: 8px; flex-shrink: 0; }
+        .btn {
+            border: 1px solid #999;
+            background: #fff;
+            color: #333;
+            border-radius: 4px;
+            padding: 7px 16px;
+            font-size: 0.8125rem;
+            cursor: pointer;
+            white-space: nowrap;
+            font-family: inherit;
+        }
+        .btn:hover { border-color: #444; }
+        .btn.primary { background: #444; border-color: #444; color: #fff; }
+        .btn.primary:hover { background: #333; }
+
+        /* ===== 智能体内嵌区 ===== */
+        .frame-wrap { flex: 1; min-height: 0; position: relative; }
+        .frame-wrap iframe { width: 100%; height: 100%; border: none; display: block; }
+
+        /*
+         * 透明点击捕获层：常驻覆盖在 iframe 上。
+         * 用户视觉上点击的是 Coze 的"开始使用"，实际点击被本层捕获，
+         * 以用户手势在顶层新窗口打开链接（弹窗不会被拦截），
+         * 避免 Coze 异步弹窗被拦后回退 iframe 内跳转 SSO 被 CSP 拒绝。
+         * 无论登录与否，内嵌页始终展示固定 URL，本层始终生效。
+         */
+        #clickGuard {
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        /* ===== 小屏：按钮紧凑 ===== */
+        @media (max-width: 768px) {
+            .bar { padding: 0 10px; height: 48px; gap: 8px; }
+            .btn { padding: 6px 12px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部工具条 -->
+    <div class="bar">
+        <span class="title">测试智能体</span>
+        <div class="actions">
+            <button class="btn primary" onclick="openInNewTab()">新标签页访问</button>
+            <button class="btn" onclick="reloadFrame()">刷新</button>
+        </div>
+    </div>
+
+    <!-- 智能体内嵌区 -->
+    <div class="frame-wrap">
+        <!--
+            sandbox 不给 allow-top-navigation：禁止内嵌页劫持外层平台窗口跳转；
+            登录弹窗即便能弹出也在新窗口（allow-popups）
+        -->
+        <iframe id="agentFrame"
+                src="https://www.coze.cn/store/agent/7682838870320431113?bot_id=true"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals"
+                referrerpolicy="no-referrer-when-downgrade"
+                title="测试智能体"></iframe>
+        <!-- 透明捕获层：常驻盖在 iframe 上，点击任意位置（如"开始使用"）即新窗口打开智能体 -->
+        <div id="clickGuard" title="点击在新窗口打开并登录"></div>
+    </div>
+
+    <script>
+        /** 智能体页面地址（Coze 商店 bot 页）：iframe 常驻展示、新窗口打开均用此地址 */
+        const AGENT_URL = 'https://www.coze.cn/store/agent/7682838870320431113?bot_id=true';
+
+        const frame = document.getElementById('agentFrame');
+        const guard = document.getElementById('clickGuard');
+
+        /**
+         * 顶层新窗口打开智能体固定地址。
+         * 捕获层点击（点"开始使用"）与右上角"新标签页访问"按钮共用此逻辑。
+         */
+        function openInNewTab() {
+            window.open(AGENT_URL, '_blank', 'noopener');
+        }
+
+        /**
+         * 透明捕获层常驻：iframe 内 Coze 页面的任何点击都被本层拦截。
+         * 用户视觉上点的是"开始使用"，实际以用户直接手势在顶层新窗口
+         * 打开智能体（window.open 在点击手势内不会被浏览器拦截），
+         * 新窗口为顶层导航，不受 SSO frame-ancestors 限制，可正常登录。
+         * 不做任何自动重载：登录完成与否，内嵌页始终保持原 URL 展示。
+         */
+        guard.addEventListener('click', openInNewTab);
+
+        /**
+         * 手动刷新：先置空再赋回固定 URL，强制 iframe 重新加载；
+         * 捕获层保持常驻，刷新后点击行为不变
+         */
+        function reloadFrame() {
+            frame.src = 'about:blank';
+            setTimeout(() => { frame.src = AGENT_URL; }, 60);
+        }
+    </script>
+</body>
+</html>
