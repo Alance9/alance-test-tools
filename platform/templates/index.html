@@ -279,6 +279,15 @@
         /* 收缩窄条：隐藏子菜单与箭头，仅保留组序号 */
         body.side-collapsed .sub-item { display: none; }
         body.side-collapsed .menu-item .arrow { display: none; }
+        /* PC 收缩态：组展开时子菜单以简写 - 01 显示（复用移动端窄条逻辑） */
+        body.side-collapsed .menu-group.expanded .sub-item {
+            display: flex;
+            justify-content: center;
+            padding: 11px 0;
+        }
+        body.side-collapsed .menu-group.expanded .sub-item::before { display: none; }
+        body.side-collapsed .menu-group.expanded .sub-item .menu-name { display: none; }
+        body.side-collapsed .menu-group.expanded .sub-item .strip-label { display: inline; }
 
         /* ===== 收缩态：极简窄条（按钮 + 01、02... 序号） ===== */
         body.side-collapsed .sidebar { width: 52px; padding: 10px 0; }

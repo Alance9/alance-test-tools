@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <!-- GitHub 风格 Markdown 样式 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@5/github-markdown.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+            background: #f5f5f5;
+            color: #222;
+            display: flex;
+            flex-direction: column;
+        }
+        /* 顶部标题条 */
+        .bar {
+            flex-shrink: 0;
+            height: 52px;
+            display: flex;
+            align-items: center;
+            padding: 0 18px;
+            background: #fafafa;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .bar .title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #333;
+        }
+        /* 文档滚动区：左侧正文 + 右侧大纲 */
+        .scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            align-items: flex-start;
+            gap: 24px;
+        }
+        .markdown-body {
+            box-sizing: border-box;
+            min-width: 0;
+            max-width: 980px;
+            flex: 1 1 0;
+            min-height: 100%;
+            padding: 32px 40px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+        .markdown-body pre { background: #f6f8fa; overflow-x: auto; }
+        /* 表格/图片超宽时内部横向滚动，避免撑破卡片边界 */
+        .markdown-body table { display: block; overflow-x: auto; }
+        .markdown-body img { max-width: 100%; height: auto; }
+        /* 右侧大纲 */
+        .toc {
+            flex: 0 0 240px;
+            align-self: flex-start;
+            position: sticky;
+            top: 24px;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 16px;
+        }
+        .toc-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .toc ul { list-style: none; }
+        .toc li { margin: 2px 0; }
+        .toc a {
+            display: block;
+            color: #555;
+            text-decoration: none;
+            font-size: 13px;
+            padding: 4px 6px;
+            border-radius: 3px;
+            line-height: 1.4;
+            word-break: break-all;
+        }
+        .toc a:hover { background: #f0f0f0; color: #222; }
+        .toc a.active { background: #e8e8e8; color: #222; font-weight: 600; }
+        .toc .lv-2 { padding-left: 0; }
+        .toc .lv-3 { padding-left: 14px; font-size: 12px; color: #666; }
+        .toc .lv-4 { padding-left: 28px; font-size: 12px; color: #666; }
+        .toc .lv-5 { padding-left: 42px; font-size: 12px; color: #888; }
+        .toc .lv-6 { padding-left: 56px; font-size: 12px; color: #888; }
+        /* Mermaid 流程图居中，提示可点击放大 */
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            margin: 16px 0;
+            cursor: zoom-in;
+            transition: transform 0.2s;
+        }
+        .mermaid:hover { transform: scale(1.02); }
+        .mermaid svg { max-width: 100%; height: auto; }
+
+        /* ===== 流程图放大层（全屏纯色背景，非灯箱） ===== */
+        .zoom-view {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #f5f5f5;
+            z-index: 9999;
+            overflow: hidden;
+            cursor: grab;
+        }
+        .zoom-view.show { display: block; }
+        .zoom-view.dragging { cursor: grabbing; }
+        .zoom-content {
+            padding: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100%;
+            width: 100%;
+        }
+        /* 放大层内 SVG：translate+scale 控制平移与缩放，transform-origin 固定左上角 */
+        .zoom-content svg {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            transform-origin: 0 0;
+            cursor: grab;
+            user-select: none;
+        }
+        .zoom-view.dragging .zoom-content svg { cursor: grabbing; }
+        /* 缩放提示 */
+        .zoom-hint {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #999;
+            font-size: 12px;
+            z-index: 10001;
+            pointer-events: none;
+        }
+        /* 右上角关闭按钮 X */
+        .zoom-close {
+            position: fixed;
+            top: 16px;
+            right: 20px;
+            width: 36px;
+            height: 36px;
+            font-size: 24px;
+            color: #666;
+            cursor: pointer;
+            user-select: none;
+            line-height: 36px;
+            text-align: center;
+            z-index: 10000;
+        }
+        .zoom-close:hover { color: #222; }
+    </style>
+</head>
+<body>
+    <div class="bar">
+        <span class="title">Playwright Auto · {{ title }}</span>
+    </div>
+    <div class="scroll">
+        <article class="markdown-body" id="content">加载中…</article>
+        <nav class="toc" id="toc" style="display:none;">
+            <div class="toc-title">大纲</div>
+            <ul id="toc-list"></ul>
+        </nav>
+    </div>
+
+    <!-- 流程图放大层：全屏纯色背景，右上角 X 关闭，滚轮缩放 -->
+    <div class="zoom-view" id="zoomView">
+        <span class="zoom-hint" id="zoomHint">100%</span>
+        <span class="zoom-close" id="zoomClose">×</span>
+        <div class="zoom-content" id="zoomContent"></div>
+    </div>
+
+    <!-- marked：Markdown -> HTML；mermaid：渲染流程图 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@11/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <!-- Markdown 内容放在非 JS 的 JSON 脚本块中，避免 Jinja2 表达式让 IDE 报 JS 语法错误 -->
+    <script type="application/json" id="md-data">{{ md_content | tojson }}</script>
+    <script>
+        (function () {
+            // 从 JSON 脚本块读取 Markdown 内容（tojson 产出 JSON 字符串，需 JSON.parse 还原）
+            var md = JSON.parse(document.getElementById('md-data').textContent);
+            var el = document.getElementById('content');
+            try {
+                marked.setOptions({ breaks: true, gfm: true });
+                el.innerHTML = marked.parse(md);
+                buildToc();
+
+                // 把 ```mermaid 代码块替换为 <div class="mermaid"> 交给 mermaid 渲染
+                if (window.mermaid) {
+                    mermaid.initialize({ startOnLoad: false, theme: 'default' });
+                    var blocks = el.querySelectorAll('pre code.language-mermaid');
+                    blocks.forEach(function (code) {
+                        var div = document.createElement('div');
+                        div.className = 'mermaid';
+                        div.textContent = code.textContent;
+                        code.parentElement.replaceWith(div);
+                    });
+                    mermaid.run({ querySelector: '.mermaid' }).then(function () {
+                        // 渲染完成后给每个流程图绑定点击放大事件
+                        el.querySelectorAll('.mermaid').forEach(function (m) {
+                            m.addEventListener('click', function () { openZoom(m); });
+                        });
+                    }).catch(function () {});
+                }
+            } catch (e) {
+                el.textContent = '文档渲染失败：' + e.message;
+            }
+
+            /**
+             * 生成右侧大纲：遍历正文所有标题，生成唯一锚点 ID，
+             * 构建目录列表，支持点击平滑跳转与滚动高亮当前章节。
+             */
+            function buildToc() {
+                var headings = el.querySelectorAll('h1, h2, h3, h4, h5, h6');
+                if (headings.length === 0) return;
+                var tocList = document.getElementById('toc-list');
+                var used = {};
+                headings.forEach(function (h, i) {
+                    // 生成唯一 ID（若标题已有 ID 则复用）
+                    var id = h.id;
+                    if (!id) {
+                        var base = (h.textContent || '').trim()
+                            .replace(/[^\w\u4e00-\u9fa5]+/g, '-')
+                            .replace(/^-+|-+$/g, '')
+                            .toLowerCase();
+                        id = base || 'heading-' + i;
+                        var n = 1, tid = id;
+                        while (used[tid]) { tid = id + '-' + (++n); }
+                        id = tid;
+                        used[id] = true;
+                        h.id = id;
+                    }
+                    var level = h.tagName.substring(1); // h2 -> 2
+                    var li = document.createElement('li');
+                    var a = document.createElement('a');
+                    a.href = '#' + id;
+                    a.textContent = h.textContent.trim();
+                    a.className = 'lv-' + level;
+                    a.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        var target = document.getElementById(id);
+                        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    });
+                    li.appendChild(a);
+                    tocList.appendChild(li);
+                });
+                // 有标题时显示大纲
+                document.getElementById('toc').style.display = '';
+
+                // 滚动时高亮当前章节
+                var scroll = document.querySelector('.scroll');
+                var links = tocList.querySelectorAll('a');
+                scroll.addEventListener('scroll', function () {
+                    var currentId = '';
+                    headings.forEach(function (h) {
+                        if (h.getBoundingClientRect().top < 120) currentId = h.id;
+                    });
+                    links.forEach(function (a) {
+                        a.classList.toggle('active', a.getAttribute('href') === '#' + currentId);
+                    });
+                });
+            }
+        })();
+
+        // 当前放大层内 SVG 的缩放比例
+        var zoomScale = 1;
+        // 当前平移偏移（px），配合 scale 实现拖拽平移
+        var zoomTX = 0;
+        var zoomTY = 0;
+        // 缩放范围
+        var ZOOM_MIN = 0.3;
+        var ZOOM_MAX = 5;
+        // 拖拽状态
+        var isDragging = false;
+        var dragStartX = 0, dragStartY = 0;
+        var dragStartTX = 0, dragStartTY = 0;
+
+        /**
+         * 打开流程图放大层：克隆被点击流程图的 SVG 到全屏放大层显示，
+         * 并初始化滚轮缩放。
+         * @param {HTMLElement} mermaidEl - 被点击的 .mermaid 容器
+         */
+        function openZoom(mermaidEl) {
+            var svg = mermaidEl.querySelector('svg');
+            if (!svg) return;
+            // 深拷贝 SVG，避免移动原节点
+            var clone = svg.cloneNode(true);
+            clone.removeAttribute('style');
+            clone.style.width = '100%';
+            clone.style.height = 'auto';
+            var content = document.getElementById('zoomContent');
+            content.innerHTML = '';
+            content.appendChild(clone);
+            // 重置缩放与平移
+            zoomScale = 1;
+            zoomTX = 0;
+            zoomTY = 0;
+            applyZoom();
+            document.getElementById('zoomView').classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        /**
+         * 应用当前缩放比例与平移偏移到放大层内的 SVG，并更新提示。
+         */
+        function applyZoom() {
+            var svg = document.querySelector('#zoomContent svg');
+            if (svg) {
+                svg.style.transform =
+                    'translate(' + zoomTX + 'px, ' + zoomTY + 'px) scale(' + zoomScale + ')';
+            }
+            document.getElementById('zoomHint').textContent =
+                Math.round(zoomScale * 100) + '%';
+        }
+
+        /**
+         * 关闭流程图放大层：点击右上角 X 或按 ESC 触发。
+         */
+        function closeZoom() {
+            document.getElementById('zoomView').classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        /**
+         * 滚轮缩放：以鼠标位置为中心调整缩放比例，并同步调整平移量使光标下内容不动。
+         * @param {WheelEvent} e
+         */
+        function onZoomWheel(e) {
+            e.preventDefault();
+            var svg = document.querySelector('#zoomContent svg');
+            if (!svg) return;
+            var rect = svg.getBoundingClientRect();
+            var oldScale = zoomScale;
+            // 滚轮向上放大、向下缩小，每次 10%
+            var step = e.deltaY < 0 ? 0.1 : -0.1;
+            zoomScale = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoomScale + step));
+            if (zoomScale === oldScale) return;
+            // 以光标位置为缩放中心：调整平移量使光标下的内容点保持不动
+            zoomTX += (e.clientX - rect.left) * (1 - zoomScale / oldScale);
+            zoomTY += (e.clientY - rect.top) * (1 - zoomScale / oldScale);
+            applyZoom();
+        }
+
+        /**
+         * 开始拖拽平移：记录鼠标起始位置与当前平移量。
+         * @param {MouseEvent} e
+         */
+        function onZoomMouseDown(e) {
+            if (e.button !== 0) return; // 仅响应左键
+            isDragging = true;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            dragStartTX = zoomTX;
+            dragStartTY = zoomTY;
+            document.getElementById('zoomView').classList.add('dragging');
+            e.preventDefault();
+        }
+
+        /**
+         * 拖拽中：根据鼠标位移更新平移量。
+         * @param {MouseEvent} e
+         */
+        function onZoomMouseMove(e) {
+            if (!isDragging) return;
+            zoomTX = dragStartTX + (e.clientX - dragStartX);
+            zoomTY = dragStartTY + (e.clientY - dragStartY);
+            applyZoom();
+        }
+
+        /**
+         * 结束拖拽：清除拖拽状态。
+         */
+        function onZoomMouseUp() {
+            if (!isDragging) return;
+            isDragging = false;
+            document.getElementById('zoomView').classList.remove('dragging');
+        }
+
+        // 右上角 X 关闭
+        document.getElementById('zoomClose').addEventListener('click', closeZoom);
+        // 放大层内滚轮缩放（passive: false 才能 preventDefault 阻止页面滚动）
+        document.getElementById('zoomView').addEventListener('wheel', onZoomWheel, { passive: false });
+        // 拖拽平移：按下时记录起点，移动时更新偏移，抬起时结束
+        document.getElementById('zoomView').addEventListener('mousedown', onZoomMouseDown);
+        document.addEventListener('mousemove', onZoomMouseMove);
+        document.addEventListener('mouseup', onZoomMouseUp);
+        // ESC 键关闭
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeZoom();
+        });
+    </script>
+</body>
+</html>

@@ -40,6 +40,13 @@ TOOL_GROUPS = [
             ('ai', 'ai_tools', '测试智能体'),
         ],
     },
+    {
+        'name': 'Playwright',
+        'children': [
+            ('pw_pom',  'playwright_auto', 'POM 分层设计'),
+            ('pw_life', 'playwright_auto', '框架生命周期'),
+        ],
+    },
 ]
 
 
